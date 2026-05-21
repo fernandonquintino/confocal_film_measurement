@@ -1,0 +1,6 @@
+# Local data and notebooks
+data/
+old_notebooks/
+
+# Python virtual environment
+phd_venv/
