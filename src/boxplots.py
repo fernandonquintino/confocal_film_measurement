@@ -40,7 +40,7 @@ def boxplot_plot(df, column, label, unit, FIG_WIDTH_CM = 8.4, FIG_HEIGHT_CM = 6.
         grouped_data,
         patch_artist=True,
         widths=0.6,
-        showfliers=True
+        showfliers=False,
     )
 
     # Fill colors
