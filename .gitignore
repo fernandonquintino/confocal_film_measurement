@@ -4,3 +4,6 @@ old_notebooks/
 
 # Python virtual environment
 phd_venv/
+
+# Editor workspace settings
+.vscode/
