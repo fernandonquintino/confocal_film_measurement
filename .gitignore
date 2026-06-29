@@ -1,5 +1,8 @@
 # Local data and notebooks
-data/
+data/bronze_layer/
+data/silver_layer/
+data/gold_layer/profile_pics/
+data/gold_layer/profile_pics_processed/
 old_notebooks/
 
 # Python virtual environment
