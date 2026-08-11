@@ -46,17 +46,17 @@ def calculate_void_fraction_slug(df, L=8, thick=0.98):
 # =========================================================
 # CHURN
 # =========================================================
-def calculate_void_fraction_churn(df, L=8, thick=0.98):
+def calculate_void_fraction_churn(df, L=8, thick=0.98): # Keep NaNs
     df = df.copy()
     delta = (df['t1'] - thick).clip(lower=0)
     df['t2'] = df['t2'] + delta
-    vf = 1 - df['t2'] / L # Keep NaNs
+    vf = 1 - df['t2'] / L
     return np.nanmean(vf)
 
 # =========================================================
 # STRATIFIED
 # =========================================================
-def calculate_void_fraction_stratified(df, L=8, thick=0.98):
+def calculate_void_fraction_stratified(df, L=8, thick=0.98): # Keep NaNs
     df = df.copy()
     delta = (df['t1'] - thick).clip(lower=0)
     df['t2'] = df['t2'] + delta
@@ -67,7 +67,7 @@ def calculate_void_fraction_stratified(df, L=8, thick=0.98):
 # =========================================================
 # WAVY
 # =========================================================
-def calculate_void_fraction_wavy(df, L=8, thick=0.98):
+def calculate_void_fraction_wavy(df, L=8, thick=0.98): # Keep NaNs
     df = df.copy()
     delta = (df['t1'] - thick).clip(lower=0)
     df['t2'] = df['t2'] + delta
