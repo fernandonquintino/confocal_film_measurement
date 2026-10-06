@@ -1,0 +1,11 @@
+,0
+f_bridge_hz,0.05
+bubble_share_min,0.5
+plug_min_duration,0.02
+plug_min_f_liquid,0.05
+annular_max_mean,0.1
+annular_max_std,0.2
+dispersed_min_mean,0.4
+dispersed_min_jump,0.3
+agitated_min_homog_ratio,0.9
+dispersed_max_phi2,6.0

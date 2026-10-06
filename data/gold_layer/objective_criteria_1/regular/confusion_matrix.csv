@@ -1,0 +1,9 @@
+reduced_pattern,bubbly,plug,slug,dispersed,wavy,stratified,annular
+bubbly,11,0,0,0,0,0,0
+plug,0,21,11,0,1,0,0
+slug,0,1,13,2,9,0,0
+dispersed,0,0,2,14,4,0,0
+churn,0,0,0,3,8,0,0
+wavy,0,0,0,2,41,1,0
+stratified,0,0,0,0,3,0,0
+annular,0,0,0,0,0,0,10

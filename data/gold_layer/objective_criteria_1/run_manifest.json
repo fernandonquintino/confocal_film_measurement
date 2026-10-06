@@ -1,0 +1,51 @@
+{
+  "version": "objective_criteria_1",
+  "date": "2026-10-05T18:23:22",
+  "description": "7 classes; jl >= 0.035 m/s; dispersed jump rule; stratified film CV rule (manifest written afterwards from the module state of this version)",
+  "criterion_params": {
+    "f_bridge_hz": 0.1,
+    "bubble_share_min": 0.5,
+    "plug_min_duration": 0.02,
+    "plug_min_f_liquid": 0.1,
+    "annular_max_mean": 0.1,
+    "annular_max_std": 0.2,
+    "dispersed_min_peaks": 2,
+    "dispersed_min_mean": 0.4,
+    "dispersed_min_jump": 0.4,
+    "dispersed_min_detected": 0.15,
+    "stratified_max_cv": 0.5
+  },
+  "feature_params": {
+    "h_liq": 7.5,
+    "h_film": 2.0,
+    "min_dwell": 0.005,
+    "kde_prominence": 0.05,
+    "jump_lag": 0.01,
+    "jump_min_change": 0.3
+  },
+  "mixer_wave_params": {
+    "h_tall": 4.0,
+    "h_film": 2.0,
+    "max_gap": 0.02,
+    "max_duration": 0.005,
+    "context_window": 0.2,
+    "context_max_film": 2.0,
+    "context_max_tall": 0.1
+  },
+  "jl_min": 0.035,
+  "objective_patterns": [
+    "bubbly",
+    "plug",
+    "slug",
+    "dispersed",
+    "wavy",
+    "stratified",
+    "annular"
+  ],
+  "reference_map": {},
+  "variants": {
+    "regular": "confocal_runs",
+    "processed": "confocal_runs_processed",
+    "processed_v2": "confocal_runs_processed_v2"
+  }
+}

@@ -10,3 +10,6 @@ phd_venv/
 
 # Editor workspace settings
 .vscode/
+
+# Paper manuscript
+confocal_paper.pdf

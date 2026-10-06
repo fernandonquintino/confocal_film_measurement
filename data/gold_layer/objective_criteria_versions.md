@@ -1,0 +1,10 @@
+# objective_criteria versions
+
+Each full run of the objective flow pattern analysis (`notebooks/kde_plots.ipynb`, section *Objective flow pattern criterion*) writes to a new folder `objective_criteria_<N>` with the subfolders `regular`, `processed` and `processed_v2`, and a `run_manifest.json` with all parameters. Iterations before version 1 were overwritten and are not kept.
+
+| Version | Date | Description | Results |
+|---|---|---|---|
+| objective_criteria_1 | 2026-10-05 | 7 classes; jl >= 0.035 m/s (157 runs); dispersed = thick film with abrupt jumps (mean >= 0.4 mm, jump fraction >= 0.4, detected >= 15 %) or >= 2 KDE peaks; stratified = film std/mean <= 0.5; annular = film mean < 0.1 mm and std < 0.2 mm | processed / processed_v2: agreement 84.2 %, balanced 75.2 %; regular: 75.3 % / 68.4 % |
+| objective_criteria_2 | 2026-10-05 | 6 classes (visual stratified evaluated as wavy, no objective stratified rule); jl >= 0.035 m/s; dispersed jump rule; film dynamics (spectral, wave events, complexity) for churn vs wavy | regular: agreement 78.1 %, balanced 80.2 %; processed: agreement 87.0 %, balanced 88.2 %; processed_v2: agreement 87.0 %, balanced 88.2 % |
+| objective_criteria_3 | 2026-10-05 | 7 classes (churn back as a target class; visual stratified evaluated as wavy); jl >= 0.035 m/s; agitated film (jumpy film or multi-peak KDE) only when dp/dz >= homogeneous prediction; dispersed if multi-peak KDE or phi2_l <= 5, else churn; film dynamics for churn vs wavy | regular: agreement 74.5 %, balanced 71.8 %; processed: agreement 86.6 %, balanced 85.5 %; processed_v2: agreement 86.6 %, balanced 85.5 % |
+| objective_criteria_4 | 2026-10-05 | 7 classes; jl >= 0.035 m/s; agitated film (jumpy film or multi-peak KDE, dp/dz >= homogeneous); NEW liquid-rich branch: thin film seen (mean < 0.5 mm) but dp/dz >= homogeneous and phi2_l <= 15 -> churn/dispersed; dispersed if multi-peak KDE or phi2_l <= 5, else churn | regular: agreement 75.2 %, balanced 76.1 %; processed: agreement 86.6 %, balanced 88.5 %; processed_v2: agreement 86.6 %, balanced 88.5 % |
