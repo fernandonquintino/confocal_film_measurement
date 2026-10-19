@@ -1,0 +1,55 @@
+\documentclass[border=2pt]{standalone}
+\usepackage{amsmath}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning}
+
+\begin{document}
+\begin{tikzpicture}[
+    dec/.style={draw, rounded corners=2pt, align=center, font=\footnotesize, inner sep=3pt, text width=3.6cm},
+    result/.style={draw, fill=gray!15, align=center, font=\footnotesize\bfseries, minimum width=1.5cm, minimum height=0.55cm},
+    arr/.style={-{Stealth[length=1.6mm]}, semithick},
+    lab/.style={font=\scriptsize, fill=white, inner sep=1pt},
+]
+
+% Start and family test
+\node[dec, text width=5.4cm] (start) at (0, 0) {Confocal record\\ + mean $(dp/dz)_{tp}$ of the run};
+\node[dec, text width=5.4cm] (bridge) at (0, -1.45) {Liquid bridges\\ ($t_2 \geq 7.5$~mm for $\geq 5$~ms)\\ $f_\mathrm{bridge} \geq 0.1$~Hz?};
+
+% Intermittent family
+\node[dec, text width=3.0cm] (bub) at (-4.0, -2.9) {$\text{Bubble share} \geq 0.5$?};
+\node[result] (bubbly) at (-5.5, -4.4) {Bubbly};
+\node[dec, text width=3.2cm] (plugq) at (-2.6, -4.4) {$\text{Mean bridge} \geq 20$~ms\\ and $f_\mathrm{liquid} \geq 0.10$?};
+\node[result] (plug) at (-3.6, -5.9) {Plug};
+\node[result] (slug) at (-1.6, -5.9) {Slug};
+
+% Separated family
+\node[dec, text width=3.9cm] (ann) at (3.4, -2.9) {Bottom film\\ $\text{mean} < 0.1$~mm and $\text{std} < 0.2$~mm?};
+\node[result] (annular) at (7.3, -2.9) {Annular};
+\node[dec, text width=3.9cm] (agit) at (3.4, -4.95) {Agitated film?\\ $\geq 2$ KDE peaks, or\\ ($\text{mean} \geq 0.4$~mm, jump fraction $\geq 0.4$, detected $\geq 15\,\%$)\\ and $(dp/dz)_{tp}/(dp/dz)_h \geq 1$};
+\node[dec, text width=3.9cm] (liq) at (3.4, -7.35) {Liquid-rich film?\\ $\text{mean} < 0.5$~mm,\\ $(dp/dz)_{tp}/(dp/dz)_h \geq 1$\\ and $\phi_l^2 \leq 15$};
+\node[result] (wavy) at (3.4, -9.0) {Wavy};
+\node[dec, text width=2.6cm] (split) at (7.3, -6.15) {$\geq 2$ KDE peaks\\ or $\phi_l^2 \leq 5$?};
+\node[result] (churn) at (6.35, -7.75) {Churn};
+\node[result] (dispersed) at (8.25, -7.75) {Dispersed};
+
+% Arrows
+\draw[arr] (start) -- (bridge);
+\draw[arr] (bridge.west) -| node[lab, pos=0.72] {yes: intermittent} (bub.north);
+\draw[arr] (bridge.east) -| node[lab, pos=0.72] {no: separated} (ann.north);
+
+\draw[arr] ([xshift=-6mm]bub.south) -- node[lab] {yes} (bubbly.north);
+\draw[arr] ([xshift=6mm]bub.south) -- node[lab] {no} (plugq.north);
+\draw[arr] ([xshift=-5mm]plugq.south) -- node[lab] {yes} (plug.north);
+\draw[arr] ([xshift=5mm]plugq.south) -- node[lab] {no} (slug.north);
+
+\draw[arr] (ann.east) -- node[lab] {yes} (annular.west);
+\draw[arr] (ann.south) -- node[lab] {no} (agit.north);
+\draw[arr] (agit.south) -- node[lab] {no} (liq.north);
+\draw[arr] (liq.south) -- node[lab] {no} (wavy.north);
+\draw[arr] (agit.east) -- node[lab, above, sloped] {yes} (split.north west);
+\draw[arr] (liq.east) -- node[lab, below, sloped] {yes} (split.south west);
+\draw[arr] ([xshift=-4mm]split.south) -- node[lab] {no} (churn.north);
+\draw[arr] ([xshift=4mm]split.south) -- node[lab] {yes} (dispersed.north);
+
+\end{tikzpicture}
+\end{document}

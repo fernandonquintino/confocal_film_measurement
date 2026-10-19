@@ -3,7 +3,13 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 
-def boxplot_plot(df, column, label, unit, FIG_WIDTH_CM = 8.4, FIG_HEIGHT_CM = 6.8, patterns=['bubbly', 'slug', 'plug', 'wavy', 'dispersed']):
+def boxplot_plot(df, column, label, unit, FIG_WIDTH_CM = 8.4, FIG_HEIGHT_CM = 6.8, patterns=['bubbly', 'slug', 'plug', 'wavy', 'dispersed'],
+                 colors=None, rotation=20):
+    """
+    ``colors`` (optional) fixes the colour of each box, in the order of
+    ``patterns``; by default the boxes take the palette below in order.
+    ``rotation`` is the angle of the pattern labels.
+    """
 
     # Order of patterns
 
@@ -23,7 +29,7 @@ def boxplot_plot(df, column, label, unit, FIG_WIDTH_CM = 8.4, FIG_HEIGHT_CM = 6.
     fig, ax = plt.subplots(figsize=FIG_SIZE)
 
     # More serious academic colors
-    colors = [
+    colors = colors or [
         '#4C72B0',  # blue
         '#55A868',  # green
         '#C44E52',  # red
@@ -62,7 +68,7 @@ def boxplot_plot(df, column, label, unit, FIG_WIDTH_CM = 8.4, FIG_HEIGHT_CM = 6.
 
     # Labels
     ax.set_xticks(range(1, len(patterns) + 1))
-    ax.set_xticklabels(patterns, rotation=20, ha='right')
+    ax.set_xticklabels(patterns, rotation=rotation, ha='right')
 
     ax.set_xlabel(r'Flow pattern')
     ax.set_ylabel(f'{label} [{unit}]')
