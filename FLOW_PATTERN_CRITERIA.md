@@ -1,6 +1,6 @@
 # Confocal data treatment and objective flow pattern criteria
 
-This document describes exactly how the confocal runs are treated (silver layer variants `processed` and `processed_v2`) and the objective criterion that assigns a flow pattern to each run. Values are those of results version **`objective_criteria_4`** (`data/gold_layer/objective_criteria_4/run_manifest.json`).
+This document describes exactly how the confocal runs are treated (silver layer variants `processed` and `processed_v2`) and the objective criterion that assigns a flow pattern to each run. Values are those of results version **`objective_criteria_5`** (`data/gold_layer/objective_criteria_5/run_manifest.json`): the criterion of version 4 evaluated against the revised visual labels (runs 10 to 12 relabelled churn, section 2).
 
 | Item | Location |
 |---|---|
@@ -73,6 +73,7 @@ The removal changes 21 runs, all recorded at 1.3 kHz or more: 9 visual wavy, 6 s
 - **Runs:** the 157 runs with $j_l \geq 0.035$ m/s. The 7 runs below it (38, 39, 40, 49, 104, 105, 164; mostly stratified) are excluded. The evaluated region is drawn in `data/gold_layer/flow_pattern_map_evaluated_region.pdf`.
 - **Classes:** bubbly, plug, slug, churn, dispersed, wavy, annular.
 - **Visual stratified → wavy:** the visual *stratified* runs are evaluated as **wavy**, because the probe sees waves in all of them.
+- **Revised visual labels (2026-10-19):** after reviewing the photos, runs 10, 11 and 12 (0228_06 to 0228_08, $j_l$ = 1.24 to 1.32 m/s, $j_g$ = 8.2 to 10.0 m/s) were relabelled from wavy-annular to **churn** in `notebooks/process_raw_experimental_data.ipynb`. Run 139 (0325_07, $j_l$ = 0.80 m/s, $j_g$ = 12.0 m/s) stays wavy-annular (wavy).
 - **No run is discarded for missing data.** A missing `t2` with a valid `t1` means the wall is seen but no interface is detected (film below the detection limit, or interface too steep). That is used as information.
 
 ---
@@ -199,17 +200,17 @@ Feature parameters:
 
 ---
 
-## 5. Agreement with the visual classification (version 4)
+## 5. Agreement with the visual classification (version 5)
 
 157 runs, seven classes. Agreement is the fraction of runs whose objective pattern equals the visual (reference) one. Balanced accuracy is the mean recall per class, so the large classes don't dominate it.
 
 | Variant | Agreement | Balanced accuracy |
 |---|---|---|
-| regular | 75.2 % | 76.1 % |
-| processed | 86.6 % | 88.5 % |
-| processed_v2 | 86.6 % | 88.5 % |
+| regular | 77.1 % | 78.2 % |
+| processed | 88.5 % | 89.4 % |
+| processed_v2 | 88.5 % | 89.4 % |
 
-Per class (processed): bubbly 11/11, plug 30/33, slug 18/25, churn 11/11, dispersed 13/20, wavy 43/47, annular 10/10.
+Per class (processed): bubbly 11/11, plug 30/33, slug 18/25, churn 14/14, dispersed 13/20, wavy 43/44, annular 10/10. The objective patterns are the same as in version 4; only the reference labels of runs 10 to 12 changed (version 4, with them as wavy-annular: 86.6 % / 88.5 %).
 
 **Known limitations:**
 - The probe sits on the **bottom wall** only. It cannot see the top wall, so a thin stratified layer and the bottom of a wavy film look alike.
@@ -217,8 +218,7 @@ Per class (processed): bubbly 11/11, plug 30/33, slug 18/25, churn 11/11, disper
 - **Five dispersed runs** (8, 9, 133, 134, 136) appear as churn: $\phi_l^2$ = 5.2 to 7.7, just above the dispersed threshold.
 - **Some disagreements are expected at transitions:**
   - the 0313 dispersed runs (54, 55) show liquid bridges and appear as slug;
-  - slugs at $j_g$ > 3 m/s without liquid bridges at the probe appear as wavy;
-  - the 0228 wavy-annular runs 10 to 12 ($j_l$ > 1.2 m/s) appear as churn.
+  - slugs at $j_g$ > 3 m/s without liquid bridges at the probe appear as wavy.
 - **The pressure gate at 1.0 is close to the highest low-$j_l$ wavy run (0.99).** Propagating the uncertainty of the differential pressure transducer (±0.15 kPa) is recommended before quoting it.
 - **Short records:** 10 runs have fewer than 1 000 samples (flag `low_sample_flag`). Runs 97 and 158 are slug runs too short to catch slow slugs.
 - **Sensitivity:** the thresholds sit on plateaus; re-tuning all of them jointly does not improve the leave-one-out agreement.
