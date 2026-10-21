@@ -58,8 +58,9 @@ CRITERION_PARAMS = {
     'dispersed_min_jump': 0.4,      # share of abrupt film changes -> dispersed [-]
     'dispersed_min_detected': 0.15, # film detected in a meaningful share of samples -> dispersed [-]
     'agitated_min_homog_ratio': 1.0, # measured / homogeneous dp/dz: phases strongly mixed [-]
-    'dispersed_max_phi2': 5.0,      # two-phase multiplier: liquid-dominated friction -> dispersed [-]
-    'liquid_rich_max_phi2': 15.0,   # thin film seen, but liquid-dominated friction -> churn/dispersed [-]
+    'dispersed_max_phi2': 5.5,      # liquid-reference multiplier close to the liquid-alone reference -> dispersed [-]
+    'liquid_rich_max_phi2': 20.0,   # thin film seen, but multiplier between churn/dispersed (<= 15.1) and thin-film wavy (>= 24.8) -> churn/dispersed [-]
+    # Refit in objective_criteria_10 with agitated_min_homog_ratio fixed at 1 (was 5.0 and 15.0)
     'liquid_rich_max_film': 0.5,    # thin film seen by the probe (liquid-rich branch) [mm]
 }
 

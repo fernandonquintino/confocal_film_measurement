@@ -12,9 +12,11 @@ from .dimensionless_number import (
 )
 
 
-def friction_f(Re, e=0, d=1.0):
+def friction_f(Re, e=0, d=1.0, laminar_fre=64.0):
+    # Darcy friction factor. laminar_fre = f Re of fully developed laminar flow:
+    # 64 for round pipes, 56.91 for square ducts (Shah and London, 1978)
     if Re < 2300:
-        f = 64/Re
+        f = laminar_fre/Re
     elif e==0:
         f = 0.25*(np.log10(150.39/(Re**0.98865) - 152.66/Re))**-2
     else:
@@ -22,17 +24,27 @@ def friction_f(Re, e=0, d=1.0):
         f = 1.613*(np.log(0.234*Rr**1.1007 - 60.525/(Re**1.1105) + 56.291/(Re**1.0712)))**-2
     return f
 
+def friction_churchill(Re, po=64.0):
+    # Darcy friction factor of Churchill (1977) for smooth ducts, valid in the laminar,
+    # transitional and turbulent regimes. For non-circular ducts the Reynolds number is
+    # replaced by the laminar-equivalent value of Jones (1976), Re* = (64/Po) Re, where
+    # Po = f Re of fully developed laminar flow (64 round pipe, 56.91 square duct)
+    re = 64.0 / po * Re
+    a = (2.457 * np.log(1.0 / (7.0 / re) ** 0.9)) ** 16
+    b = (37530.0 / re) ** 16
+    return 8.0 * ((8.0 / re) ** 12 + 1.0 / (a + b) ** 1.5) ** (1.0 / 12)
+
 # Homogeneous based
 
 def dpdz_h(g, d, rho, f):
     dpdz = g**2/(2*d*rho)*f
     return dpdz
 
-def dpdz_mcaddams_1942(g, d, x, rho_l, rho_g, mu_l, mu_g, e=0):
+def dpdz_mcaddams_1942(g, d, x, rho_l, rho_g, mu_l, mu_g, e=0, laminar_fre=64.0):
     mu = ((1-x)/mu_l + x/mu_g)**-1
     Re = Reynolds(g, d, mu)
     rho = rho_x(x, rho_l, rho_g)
-    f = friction_f(Re, e)
+    f = friction_f(Re, e, laminar_fre=laminar_fre)
     dpdz = dpdz_h(g, d, rho, f)
     return dpdz
 

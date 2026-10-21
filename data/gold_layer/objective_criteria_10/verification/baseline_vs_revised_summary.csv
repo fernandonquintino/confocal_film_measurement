@@ -1,0 +1,3 @@
+,agreement,balanced_accuracy,n_correct,n_bubbly,n_plug,n_slug,n_churn,n_dispersed,n_wavy,n_annular,class_changes,pressure_features_changed_runs
+objective_criteria_8,0.8853503184713376,0.8937662337662339,139.0,11.0,31.0,23.0,19.0,13.0,50.0,10.0,0,0
+objective_criteria_10,0.8789808917197452,0.8805009276437847,138.0,11.0,31.0,23.0,16.0,14.0,52.0,10.0,3,124

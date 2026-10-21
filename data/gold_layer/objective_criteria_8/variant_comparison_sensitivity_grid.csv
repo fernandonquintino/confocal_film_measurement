@@ -1,0 +1,8 @@
+,regular,processed,processed_v2
+default thresholds,0.7815213358070502,0.8937662337662339,0.8937662337662339
+"best grid (in-sample, first in grid order)",0.8000927643784786,0.900909090909091,0.900909090909091
+"best grid (leave-one-out, first in grid order)",0.7786641929499074,0.8762337662337664,0.8762337662337664
+"best grid (in-sample, closest to chosen thresholds)",0.8000927643784786,0.900909090909091,0.900909090909091
+"best grid (leave-one-out, closest to chosen thresholds)",0.7929499072356216,0.8937662337662339,0.8937662337662339
+grid combinations,103680.0,103680.0,103680.0
+tied best combinations,192.0,96.0,96.0

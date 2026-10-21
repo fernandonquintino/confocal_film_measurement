@@ -32,7 +32,11 @@ def pattern_styles(map_categories):
     }
 
 
-def _pattern_legend(ax, styles, patterns, title='Visual pattern'):
+def _pattern_legend(ax, styles, patterns, title='Visual pattern', loc=None):
+    """
+    Legend of the flow patterns. ``loc=None`` places it outside the axes, on
+    the right; any matplotlib location (e.g. 'best') places it inside.
+    """
 
     handles = [
         Line2D([], [], linestyle='none', marker=styles[p]['marker'], markerfacecolor=styles[p]['color'],
@@ -40,8 +44,14 @@ def _pattern_legend(ax, styles, patterns, title='Visual pattern'):
         for p in patterns
     ]
 
-    ax.legend(handles=handles, title=title, bbox_to_anchor=(1, 1), loc='upper left',
-              frameon=False, fontsize=7, title_fontsize=7)
+    if loc is None:
+        ax.legend(handles=handles, title=title, bbox_to_anchor=(1, 1), loc='upper left',
+                  frameon=False, fontsize=7, title_fontsize=7)
+    else:
+        legend = ax.legend(handles=handles, title=title, loc=loc, frameon=True, framealpha=0.9, edgecolor='0.6',
+                           fancybox=False, fontsize=7, title_fontsize=7, borderpad=0.3, labelspacing=0.25,
+                           handletextpad=0.2)
+        legend.get_frame().set_linewidth(0.5)
 
 # =========================================================
 # Criterion figures
@@ -49,15 +59,17 @@ def _pattern_legend(ax, styles, patterns, title='Visual pattern'):
 
 def criterion_scatter(df, x, y, xlabel, ylabel, styles, xlines=(), ylines=(), xscale='linear',
                       pattern_column='reduced_pattern', patterns=VISUAL_PATTERNS, segments=(),
-                      xlim=None, ylim=None, yscale='linear', label_column=None):
+                      xlim=None, ylim=None, yscale='linear', label_column=None,
+                      figsize=None, legend_loc=None):
     """
     Scatter of two run features coloured by pattern. ``xlines``/``ylines``
     draw full dashed threshold lines; ``segments`` draws dashed segments
     given as ((x0, x1), (y0, y1)); ``label_column`` annotates each point
-    (e.g. with the run id).
+    (e.g. with the run id). ``figsize`` overrides the default size and
+    ``legend_loc`` places the legend inside the axes (see ``_pattern_legend``).
     """
 
-    fig, ax = plt.subplots(figsize=FIG_SIZE)
+    fig, ax = plt.subplots(figsize=figsize or FIG_SIZE)
 
     present = [p for p in patterns if (df[pattern_column] == p).any()]
 
@@ -99,7 +111,7 @@ def criterion_scatter(df, x, y, xlabel, ylabel, styles, xlines=(), ylines=(), xs
     ax.set_ylabel(ylabel)
     ax.grid(alpha=0.3, zorder=0)
 
-    _pattern_legend(ax, styles, present)
+    _pattern_legend(ax, styles, present, loc=legend_loc)
 
     fig.tight_layout()
     plt.close(fig)
@@ -107,9 +119,9 @@ def criterion_scatter(df, x, y, xlabel, ylabel, styles, xlines=(), ylines=(), xs
     return fig
 
 
-def confusion_heatmap(confusion, xlabel='Objective pattern', ylabel='Visual pattern'):
+def confusion_heatmap(confusion, xlabel='Objective pattern', ylabel='Visual pattern', figsize=None):
 
-    fig, ax = plt.subplots(figsize=(8.4 * CM, 8.4 * CM))
+    fig, ax = plt.subplots(figsize=figsize or (8.4 * CM, 8.4 * CM))
 
     sns.heatmap(confusion, annot=True, fmt='d', cmap='Greys', cbar=False, linewidths=0.5,
                 linecolor='white', annot_kws={'fontsize': 7}, ax=ax)
@@ -125,17 +137,20 @@ def confusion_heatmap(confusion, xlabel='Objective pattern', ylabel='Visual patt
     return fig
 
 
-def sweep_figure(df_sweep, defaults, labels, log_parameters=('f_bridge_hz',)):
+def sweep_figure(df_sweep, defaults, labels, log_parameters=('f_bridge_hz',),
+                 width=17.6 * CM, row_height=4.2 * CM, label_size=7, tick_size=6,
+                 ylabel=r'Balanced accuracy [\%]'):
     """
     Balanced accuracy vs. each parameter (one panel per parameter, default
-    value marked with a dashed line).
+    value marked with a dashed line). ``width`` and ``row_height`` are in
+    inches.
     """
 
     parameters = list(dict.fromkeys(df_sweep['parameter']))
     ncols = 4
     nrows = int(np.ceil(len(parameters) / ncols))
 
-    fig, axes = plt.subplots(nrows, ncols, figsize=(17.6 * CM, 4.2 * nrows * CM), sharey=True, squeeze=False)
+    fig, axes = plt.subplots(nrows, ncols, figsize=(width, row_height * nrows), sharey=True, squeeze=False)
 
     for ax, key in zip(axes.flat, parameters):
 
@@ -147,15 +162,15 @@ def sweep_figure(df_sweep, defaults, labels, log_parameters=('f_bridge_hz',)):
         if key in log_parameters:
             ax.set_xscale('log')
 
-        ax.set_xlabel(labels[key], fontsize=7)
-        ax.tick_params(labelsize=6)
+        ax.set_xlabel(labels[key], fontsize=label_size)
+        ax.tick_params(labelsize=tick_size)
         ax.grid(alpha=0.3)
 
     for ax in axes.flat[len(parameters):]:
         ax.set_visible(False)
 
     for ax in axes[:, 0]:
-        ax.set_ylabel(r'Balanced accuracy [\%]', fontsize=7)
+        ax.set_ylabel(ylabel, fontsize=label_size)
 
     fig.tight_layout()
     plt.close(fig)

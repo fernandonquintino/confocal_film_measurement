@@ -1,12 +1,13 @@
 # Confocal data treatment and objective flow pattern criteria
 
-This document describes exactly how the confocal runs are treated (silver layer variants `processed` and `processed_v2`) and the objective criterion that assigns a flow pattern to each run. Values are those of results version **`objective_criteria_5`** (`data/gold_layer/objective_criteria_5/run_manifest.json`): the criterion of version 4 evaluated against the revised visual labels (runs 10 to 12 relabelled churn, section 2).
+This document describes exactly how the confocal runs are treated (silver layer variants `processed` and `processed_v2`) and the objective criterion that assigns a flow pattern to each run. Values are those of results version **`objective_criteria_10`** (`data/gold_layer/objective_criteria_10/run_manifest.json`): the criterion of version 4 with the two $\phi_l^2$ limits refitted (dispersed 5.5, liquid-rich 20; $R_h$ limit kept at 1), evaluated against the revised visual labels (runs 10 to 12 relabelled churn, section 2), with the fluid properties at the water temperature, the gas mass flux with the density at the orifice meter and the Churchill friction factor with the laminar-equivalent Reynolds number of a square duct (section 3.3). Checks of this version are in `notebooks/criterion_verification.ipynb` (outputs in `objective_criteria_10/verification/`).
 
 | Item | Location |
 |---|---|
 | Treatment code | `notebooks/process_raw_confocal_data.ipynb`, `src/load_data.py`, `src/confocal_treatment.py` |
 | Criterion code | `src/flow_pattern_criteria.py`, `src/pressure_features.py` |
 | Analysis notebook | `notebooks/kde_plots.ipynb`, section *Objective flow pattern criterion* |
+| Verification notebook | `notebooks/criterion_verification.ipynb` (precision/recall, sampling rates, pressure tolerance, wall reference, 100 Hz downsampling, baseline comparison) |
 | Results | `data/gold_layer/objective_criteria_<N>/` (one folder per version, see `data/gold_layer/objective_criteria_versions.md`) |
 
 Each confocal run holds about 10 000 samples of `time` and three thicknesses: `t1` (tube wall, nominally 0.98 mm), `t2` (liquid film, measured from the inner wall) and `t3`. Channel: 8 mm square, horizontal, air-water.
@@ -108,11 +109,13 @@ All quantities are computed per run, after excluding the `mixer_wave` samples (p
 
 ### 3.3 Mean pressure-drop features (`src/pressure_features.py`)
 
-Only the **mean** pressure gradient of each run is available: $(dp/dz)_\mathrm{tp} = \Delta p / L$, with $L$ = 0.75 m. Properties come from CoolProp at the test-section pressure and temperature; $d$ = 8 mm.
+Only the **mean** pressure gradient of each run is available: $(dp/dz)_\mathrm{tp} = \Delta p / L$, with $L$ = 0.75 m. Properties come from CoolProp at the test-section pressure and at the **water temperature**, used as an approximation of the unmeasured test-section temperature: water carries over 83 % of the heat capacity rate in every run (median 99.8 %), so an adiabatic mixture stays within 0.6 °C of it. The former choice, the mean of the water and air temperatures, was 2.4 °C lower on average; with it, or with the gas at the air temperature, no run changes class and the features change by 1 % to 2 % (median). $d$ = 8 mm.
 
-The two reference gradients use the same friction factor:
+**Gas mass flux.** `Qg` (LabVIEW) is the volumetric flow at the orifice meter, so $j_g = Q_g/A$ refers to the meter and the gas mass flux uses the density at the meter: $G_g = P_g/(R_{air} T_g)\,j_g$ (`two_phase_state` in `src/pressure_features.py`; up to version 8 the density at the test section was used, which underestimated $G_g$ by 15 % on average).
 
-$$f = 64/Re \ (Re < 2300), \qquad f = 0.25\left[\log_{10}\!\left(\frac{150.39}{Re^{0.98865}} - \frac{152.66}{Re}\right)\right]^{-2} \ \text{otherwise}$$
+**Friction factor.** The two reference gradients use the Darcy friction factor of Churchill (1977) for smooth ducts, continuous over the laminar, transitional and turbulent regimes, with the laminar-equivalent Reynolds number of Jones (1976), $Re^* = (64/Po)\,Re = 1.1246\,Re$, $Po$ = 56.91 for a square duct (Shah and London, 1978; `SQUARE_DUCT_PO`). In the laminar regime $f = 56.91/Re$. Up to version 7: 64/Re and Fang et al. (2011) above Re = 2300; version 8: 56.91/Re and Fang (discontinuous at 2300, f from 0.025 to 0.047).
+
+$$f = 8\left[(8/Re^*)^{12} + (a+b)^{-3/2}\right]^{1/12}, \quad a = \left[2.457\ln\left(1/(7/Re^*)^{0.9}\right)\right]^{16}, \quad b = (37530/Re^*)^{16}$$
 
 **Homogeneous (McAdams), no slip.** With $G = G_l + G_g$ and $x = G_g/G$:
 
@@ -123,10 +126,10 @@ $$\rho_h = \left[\frac{x}{\rho_g} + \frac{1-x}{\rho_l}\right]^{-1}, \qquad \mu_h
 $$\left(\frac{dp}{dz}\right)_l = \frac{f(Re_l)\,G_l^2}{2\,d\,\rho_l}, \qquad Re_l = \frac{G_l\, d}{\mu_l}$$
 
 **The two features:**
-- $\mathrm{ratio\_homog} = (dp/dz)_\mathrm{tp} / (dp/dz)_h$
-  - ≥ 1: the phases are strongly mixed;
-  - < 1: the gas slips over a separated liquid layer.
-- $\phi_l^2 = (dp/dz)_\mathrm{tp} / (dp/dz)_l$
+- $\mathrm{ratio\_homog} = (dp/dz)_\mathrm{tp} / (dp/dz)_h$ ($R_h$, homogeneous-normalized pressure-gradient ratio)
+  - ≥ 1: observed for dispersed and churn flows, consistent with strongly mixed phases;
+  - < 1: observed for wavy flow, consistent with gas slipping over a separated liquid layer.
+- $\phi_l^2 = (dp/dz)_\mathrm{tp} / (dp/dz)_l$ (liquid-reference two-phase multiplier)
   - small: the friction is dominated by the liquid;
   - large: the gas adds much of the friction.
 
@@ -159,7 +162,7 @@ A run is intermittent when liquid bridges occur at least **0.1 times per second*
 
 1. **Film signature**, one of:
    - `n_peaks` ≥ 2 (film plus bubble layer), or
-   - a liquid film present with abruptly varying thickness: `film_est_mean_mm` ≥ 0.4 mm, `film_jump_frac` ≥ 0.4, and the film detected in ≥ 15 % of the samples (1 − `f_undetected` ≥ 0.15).
+   - a liquid film present with abruptly varying thickness: `film_est_mean_mm` ≥ 0.4 mm, `film_jump_frac` ≥ 0.4, and the second thickness detected in ≥ 15 % of the samples (1 − `f_undetected` ≥ 0.15).
 2. **Pressure:** `ratio_homog` ≥ 1.0 (pressure gradient at least the homogeneous prediction).
 
 Below the homogeneous prediction, a thick, jumpy film is a separated flow with the gas slipping over it (low $j_l$ runs), and the run is wavy.
@@ -168,7 +171,7 @@ Below the homogeneous prediction, a thick, jumpy film is a separated flow with t
 
 - `film_est_mean_mm` < 0.5 mm: the probe sees only a thin, broken film, because the interface is lost to aeration;
 - `ratio_homog` ≥ 1.0: the flow is mixed;
-- $\phi_l^2$ ≤ 15: liquid-dominated friction, below every thin-film wavy and annular run.
+- $\phi_l^2$ ≤ 20: below every thin-film wavy run with `ratio_homog` ≥ 1 (≥ 24.8) and every annular run; the churn and dispersed thin-film runs reach 15.1.
 
 ### 4.3 Thresholds
 
@@ -185,8 +188,8 @@ Below the homogeneous prediction, a thick, jumpy film is a separated flow with t
 | `dispersed_min_jump` | 0.4 | agitated film |
 | `dispersed_min_detected` | 0.15 | agitated film |
 | `agitated_min_homog_ratio` | 1.0 | agitated and liquid-rich films |
-| `dispersed_max_phi2` | 5 | dispersed vs churn |
-| `liquid_rich_max_phi2` | 15 | liquid-rich film |
+| `dispersed_max_phi2` | 5.5 | dispersed vs churn |
+| `liquid_rich_max_phi2` | 20 | liquid-rich film |
 | `liquid_rich_max_film` | 0.5 mm | liquid-rich film |
 
 Feature parameters:
@@ -200,25 +203,30 @@ Feature parameters:
 
 ---
 
-## 5. Agreement with the visual classification (version 5)
+## 5. Agreement with the visual classification (version 10)
 
 157 runs, seven classes. Agreement is the fraction of runs whose objective pattern equals the visual (reference) one. Balanced accuracy is the mean recall per class, so the large classes don't dominate it.
 
 | Variant | Agreement | Balanced accuracy |
 |---|---|---|
-| regular | 77.1 % | 78.2 % |
-| processed | 88.5 % | 89.4 % |
-| processed_v2 | 88.5 % | 89.4 % |
+| regular | 76.4 % | 76.8 % |
+| processed | 87.9 % | 88.1 % |
+| processed_v2 | 87.9 % | 88.1 % |
 
-Per class (processed): bubbly 11/11, plug 30/33, slug 18/25, churn 14/14, dispersed 13/20, wavy 43/44, annular 10/10. The objective patterns are the same as in version 4; only the reference labels of runs 10 to 12 changed (version 4, with them as wavy-annular: 86.6 % / 88.5 %).
+Per class (processed): bubbly 11/11, plug 30/33, slug 18/25, churn 12/14, dispersed 14/20, wavy 43/44, annular 10/10. Version 10 refits the two $\phi_l^2$ limits on the version 9 features (coarse grid with the `ratio_homog` limit fixed at 1; dispersed 5 → 5.5, liquid-rich 15 → 20): runs 136 (dispersed) and 138 (churn) become correct (version 9: 86.6 % / 86.3 %). Version 9 (gas mass flux at the meter density, Churchill/Jones friction factor) changes three classes with respect to version 8: churn runs 27, 138 and 140 become wavy (version 8: 88.5 % / 89.4 %). The objective patterns are the same as in version 4; only the reference labels of runs 10 to 12 changed (version 4, with them as wavy-annular: 86.6 % / 88.5 %). Version 6 (properties at the water temperature) gives the same objective patterns as version 5, and version 8 (square-duct laminar friction factor: $\phi_l^2$ +12.5 % in the 58 runs with laminar $Re_l$, $R_h$ up to +12.5 % in the 15 runs with laminar $Re_{tp}$) the same as version 6.
+
+Precision per class (runs correctly identified / runs assigned to the class): bubbly 11/11, plug 30/31, slug 18/23, churn 12/16, dispersed 14/14, wavy 43/52, annular 10/10.
 
 **Known limitations:**
 - The probe sits on the **bottom wall** only. It cannot see the top wall, so a thin stratified layer and the bottom of a wavy film look alike.
 - **Thin-film runs near the annular transition** are classified by the mean pressure drop rather than by the film.
-- **Five dispersed runs** (8, 9, 133, 134, 136) appear as churn: $\phi_l^2$ = 5.2 to 7.7, just above the dispersed threshold.
+- **Four dispersed runs** (8, 9, 133, 134) appear as churn: $\phi_l^2$ = 6.2 to 8.1, above the dispersed threshold of 5.5. Two churn runs (27, 140) appear as wavy: `ratio_homog` 0.98 and 0.94, just below 1.
 - **Some disagreements are expected at transitions:**
   - the 0313 dispersed runs (54, 55) show liquid bridges and appear as slug;
   - slugs at $j_g$ > 3 m/s without liquid bridges at the probe appear as wavy.
-- **The pressure gate at 1.0 is close to the highest low-$j_l$ wavy run (0.99).** Propagating the uncertainty of the differential pressure transducer (±0.15 kPa) is recommended before quoting it.
+- **The pressure gate at 1.0 is close to the highest agitated-film run below it:** slug run 91 (visual slug, classified wavy) has `ratio_homog` = 0.981; the low-$j_l$ wavy and slug runs with an agitated film, and churn runs 27 and 140, span 0.68 to 0.98. Within the ±0.15 kPa of the differential pressure transducer (±200 Pa/m) runs 91 and 116 can change between churn and wavy; with the flow-rate tolerances (±3 % liquid, ±5 % gas, worst combination) also runs 21, 27 and 140 (churn/wavy) and 95 and 136 (churn/dispersed) (`verification/pressure_bounds.csv`). A shift of ±10 kPa in the estimated test-section pressure changes `ratio_homog` by about ±7 % and moves four runs: 116 at −10 kPa; 27, 91 and 140 at +10 kPa (`verification/ptp_sensitivity.csv`). Using (Tl + Tg)/2 or Tg for the properties changes no class.
 - **Short records:** 10 runs have fewer than 1 000 samples (flag `low_sample_flag`). Runs 97 and 158 are slug runs too short to catch slow slugs.
-- **Sensitivity:** the thresholds sit on plateaus; re-tuning all of them jointly does not improve the leave-one-out agreement.
+- **Sensitivity:** the bubble share, plug duration, liquid-rich film and liquid-rich $\phi_l^2$ (16 to 24) limits sit on plateaus; `agitated_min_homog_ratio` and `dispersed_max_phi2` are the most sensitive (a change of 0.05 or 0.5 moves one or two runs). `agitated_min_homog_ratio` of 0.75 to 0.95 would give up to 89.8 % balanced accuracy, but it is kept at 1 (homogeneous reference). The coarse grid (11 thresholds, 103 680 combinations) reaches 90.1 % balanced accuracy in-sample (24 tied combinations); leave-one-out re-tuning gives 86.6 % (ties broken by grid order) or 89.1 % (ties towards the chosen thresholds). These grid results are not reported in the paper (author decision).
+- **Acquisition rate:** downsampling the 59 kHz runs to 100 Hz changes 1 to 13 classes depending on the sampling phase (7 at the first sample; 16 runs change at some phase, 2 at every phase), so the criterion depends on the rate (`verification/downsample_100hz_phases.csv`).
+- **Wall reference:** with 0.995 mm instead of 0.985 mm no class changes; 0.975 mm (below the dry-wall readings) changes runs 1, 4 and 37 (`verification/wall_reference_sensitivity.csv`).
+- **Friction model:** with the gas mass flux at the meter density, changing only the friction model (piecewise vs Churchill/Jones) changes run 116; 29 runs have $Re_{tp}$ and 31 $Re_l$ between 1800 and 4000 (`verification/friction_switch.csv`).

@@ -6,16 +6,17 @@ Guide for rewriting `confocal_paper.pdf` around the objective flow pattern crite
 |---|---|
 | `confocal_paper.pdf` | current version (10 pages, 21 figures, 4 tables, 8 equations). "Old" numbers below refer to it. |
 | `FLOW_PATTERN_CRITERIA.md` | treatment and criterion definitions (cited as **FPC §x**) |
-| `data/gold_layer/objective_criteria_5/` | results of the criterion, version 5 (the version to report: same criterion as version 4, with runs 10–12 relabelled churn) |
-| `data/gold_layer/objective_criteria_5/run_manifest.json` | every threshold and parameter |
-| `data/gold_layer/objective_criteria_5/processed_v2/objective_flow_pattern.csv` | features and objective pattern of each of the 157 runs |
-| `data/gold_layer/objective_criteria_5/variant_comparison_criterion.csv` | agreement per data variant |
+| `data/gold_layer/objective_criteria_6/` | results of the criterion, version 6 (the version to report: same criterion as version 4, runs 10–12 relabelled churn, fluid properties at the water temperature) |
+| `data/gold_layer/objective_criteria_6/run_manifest.json` | every threshold and parameter |
+| `data/gold_layer/objective_criteria_6/processed_v2/objective_flow_pattern.csv` | features and objective pattern of each of the 157 runs |
+| `data/gold_layer/objective_criteria_6/variant_comparison_criterion.csv` | agreement per data variant |
 | `notebooks/paper_figures.ipynb` → `data/gold_layer/paper_figures/` | every data figure of the revised paper (§4) |
+| `artigo/confocal_paper.tex`, `confocal_paper_revised.md` | the revised manuscript (same text in both; the Markdown marks the changes relative to the original PDF) |
 
 Decisions taken:
 - Section 2.5 describes the **processed_v2** treatment: trimming + tube-thickness correction + mixer-wave removal.
 - The criterion gets its **own Section 3**. Results move to Section 4.
-- Results come from `objective_criteria_5/processed_v2/`, figures from `data/gold_layer/paper_figures/`. processed and processed_v2 give identical results: the same confusion matrix and the same 18 disagreements.
+- Results come from `objective_criteria_6/processed_v2/`, figures from `data/gold_layer/paper_figures/`. processed and processed_v2 give identical results: the same confusion matrix and the same 18 disagreements.
 
 Status labels used below:
 
@@ -32,7 +33,7 @@ Status labels used below:
 
 ## 1. Number of valid runs (checked against the data)
 
-**The analysed set is 157 runs. Removing stratified did not remove any run:** the 3 visual stratified runs that remain inside the evaluated region are evaluated as wavy. Checked against `data/silver_layer/experimental_results.csv` and `objective_flow_pattern.csv`.
+**The analysed set is 157 runs, and the paper presents it simply as 157 runs (no mention of the 7 low-$j_l$ runs). Removing stratified did not remove any run:** the 3 visual stratified runs that remain inside the evaluated region are evaluated as wavy. Checked against `data/silver_layer/experimental_results.csv` and `objective_flow_pattern.csv`.
 
 | Step | Runs | Detail |
 |---|---|---|
@@ -40,7 +41,7 @@ Status labels used below:
 | Removed: $j_l$ < 0.035 m/s | −7 | 38, 39, 49, 105 (stratified); 40 (stratified-wavy); 104 (wavy); 164 (annular) |
 | **Evaluated set** | **157** | used by every result of the criterion |
 
-In those 157 runs, the visual log labels map onto the 7 reference classes like this (the paper should state this mapping, Table 6):
+In those 157 runs, the visual log labels map onto the 7 reference classes like this (the paper states the transitional sub-labels and the class distribution in the text, without a table; the mapping is kept in `artigo/tables/visual_label.tex`, not included):
 
 | Reference class | Runs | Visual labels included |
 |---|---|---|
@@ -53,7 +54,7 @@ In those 157 runs, the visual log labels map onto the 7 reference classes like t
 | annular | 10 | annular (10) |
 | **Total** | **157** | |
 
-Relabelled after reviewing the photos (2026-10-19): runs 10, 11, 12 (0228_06 to 0228_08; $j_l$ = 1.24–1.32, $j_g$ = 8.2–10.0 m/s) changed from wavy-annular to **churn** in `notebooks/process_raw_experimental_data.ipynb`. Run 139 (0325_07, $j_l$ = 0.80, $j_g$ = 12.0 m/s) stays wavy. The criterion results are version **`objective_criteria_5`**: same rules and thresholds as version 4, new reference labels.
+Relabelled after reviewing the photos (2026-10-19): runs 10, 11, 12 (0228_06 to 0228_08; $j_l$ = 1.24–1.32, $j_g$ = 8.2–10.0 m/s) changed from wavy-annular to **churn** in `notebooks/process_raw_experimental_data.ipynb`. Run 139 (0325_07, $j_l$ = 0.80, $j_g$ = 12.0 m/s) stays wavy. The criterion results are version **`objective_criteria_6`**: same rules and thresholds as version 4, new reference labels, and fluid properties at the water temperature (2.2).
 
 What happened to stratified:
 - **Pure visual stratified:** 7 runs in the campaign.
@@ -84,7 +85,8 @@ Phrases to find and fix everywhere:
 - "53 valid runs", "missing rate lesser than 50 %", and the solid/open-marker explanation;
 - "stratified" in the lists of observed patterns;
 - "can be applied for objective flow pattern identification" (abstract) and "possible to use those as an objective criteria" (Sec. 3.3);
-- footer "Preprint submitted to Nuclear Physics B" (template leftover).
+- footer "Preprint submitted to Nuclear Physics B" (template leftover);
+- Sec. 2.2: "the temperature was approximated as the room temperature, which was about 22 °C in all trials" (gas line). The measured air temperature was 24.8 ± 3.0 °C (19.6–30.1 °C) and the water 29.7 ± 3.0 °C; check which temperature the LabVIEW gas flow rate ($Q_g$) uses for the air density, and state that the fluid properties of the analysis are taken at the water temperature.
 
 ---
 
@@ -95,7 +97,7 @@ Phrases to find and fix everywhere:
 Must contain, in this order:
 1. **Context:** a liquid film is present in most two-phase flow patterns and controls heat transfer, pressure drop and void fraction. Measuring it is difficult because it is thin and changes quickly. (Keep the current text.)
 2. **Technique:** confocal chromatic microscopy, non-invasive and high-speed, applied here to horizontal air-water flow in an 8 mm square channel. (Keep.)
-3. **Dataset:** 164 runs; 157 evaluated over seven patterns (bubbly, plug, slug, churn, dispersed, wavy, annular).
+3. **Dataset:** 157 runs over seven patterns (bubbly, plug, slug, churn, dispersed, wavy, annular).
 4. **Treatment:** trimming, tube-thickness correction (recovers films below the detection limit from the wall reading), and removal of mixer waves. Missing film readings are used as information, not discarded.
 5. **Criterion:** the run is classified by rules on physically interpretable quantities:
    - liquid-bridge statistics (intermittent flows);
@@ -134,13 +136,13 @@ Must add or change:
 - Eqs. 1–4 and the current text.
 - Add:
   - $(dp/dz)_{tp} = \Delta p_{tp}/L$ with $L$ = 0.75 m;
-  - water and air properties come from CoolProp at the test-section pressure and temperature;
+  - water and air properties come from CoolProp at the test-section pressure and at the **water temperature**. The test-section temperature was not measured. Justification: water carries over 83 % of the heat capacity rate in every run (median 99.8 %; the minimum is in annular flow, where the gas volume fraction reaches 99.8 % but the quality is at most 46 %), so an adiabatic mixture stays within 0.6 °C of the water temperature. Sensitivity: with the mean of water and air temperatures (2.4 °C lower on average), or with the gas at the air temperature (no thermal equilibrium), the pressure features change by 1–2 % (median) and no run changes class;
   - mass fluxes $G_l = \rho_l j_l$, $G_g = \rho_g j_g$ and quality $x = G_g/(G_l+G_g)$.
 - These definitions are needed in Section 3.3.
 
 #### 2.3 Uncertainty analysis (edit)
 - Table 1 and the current calibration text.
-- Add, if done: the uncertainty of `ratio_homog`, propagated from ±0.15 kPa in $\Delta P_{tp}$ and the flow-rate uncertainties. It matters because the criterion uses `ratio_homog` ≥ 1.0, and the highest low-$j_l$ wavy run is at 0.99. If not done, state it as a limitation in Section 4.6.
+- Add, if done: the uncertainty of `ratio_homog`, propagated from ±0.15 kPa in $\Delta P_{tp}$ and the flow-rate uncertainties. It matters because the criterion uses `ratio_homog` ≥ 1.0, and slug run 91 (agitated film, classified wavy) sits at 0.997. If not done, state it as a limitation in Section 4.6.
 
 #### 2.4 Confocal measurement system (keep + move)
 - Figs. 3–5, Table 2 and the current text: principle, refractive-index correction, 0.5 mm minimum from the manufacturer, dark reference, empty-tube check.
@@ -160,7 +162,7 @@ The old section is built around discarding runs. The new one describes a pipelin
 - Time starts at 0. `t2` is capped at 8.02 mm, the measured inner side of the channel (Table 2).
 
 **2.5.2 Trimming to the first valid `t1` (new).**
-- **Observation:** 68 of the 164 files start with a block in which the sensor was not yet acquiring. In that block both `t1` and `t2` are missing, for up to 96 % of the file.
+- **Observation:** 62 of the 157 runs start with a block in which the sensor was not yet acquiring. In that block both `t1` and `t2` are missing, for up to 96 % of the file.
 - **Why it matters:** counted as missing film readings, these blocks inflated the missing fraction. They were the main reason the old < 50 % filter rejected most runs: 69 runs pass that filter after trimming, against 53 before.
 - **Procedure:** rows before the first valid `t1` are removed, and time is reset to 0 there.
 - **Consequence:**
@@ -205,11 +207,10 @@ The old section is built around discarding runs. The new one describes a pipelin
 
 Must contain:
 - **Fig. 9 = `paper_figures/fig09_evaluated_region.pdf`** (same as `data/gold_layer/flow_pattern_map_evaluated_region.pdf`; replaces old Fig. 8).
-  - 164 runs; the range of $j_l$ and $j_g$.
-  - The **evaluated region** holds the 157 runs with $j_l \geq 0.035$ m/s. The 7 excluded runs are mostly stratified (4 of 7).
-  - The transition lines are those of Coleman and Garimella [22] (5.36 mm hydraulic diameter, aspect ratio 0.725, horizontal air-water).
+  - 157 runs; $j_l$ from 0.05 to 3.12 m/s and $j_g$ from 0.25 to 25.16 m/s.
+  - The transition lines are those of Coleman and Garimella (round channel, 5.50 mm hydraulic diameter, horizontal air-water).
   - The visual classification of each run appears later, next to the objective one (Fig. 24).
-- **Visual classification:** high-speed camera, mostly 8000 fps. The log has compound labels (bubbly-churn, wavy-annular…). These were mapped to 7 reference classes: **Table 6** (the mapping in §1 of this plan).
+- **Visual classification:** high-speed camera, mostly 8000 fps. The log has compound labels (bubbly-churn, wavy-annular…). These were mapped to 7 reference classes, stated in the text with their distribution (wavy 28 %, plug 21 %, slug 16 %, dispersed 13 %, churn 9 %, bubbly 7 %, annular 6 %); no table.
 - **Fig. 10 = old Fig. 9 without panel (d) stratified.** Seven panels, ordered by the two families of the criterion: (a) bubbly, (b) plug, (c) slug | (d) dispersed, (e) churn, (f) wavy, (g) annular.
 - **Physical description of each pattern,** as seen in the images. It should match the criterion's reading:
   - **Bubbly:** small bubbles carried by a continuous liquid, mostly in the upper half because of buoyancy. No wall film below them.
@@ -275,12 +276,12 @@ Present only the features the rules use (**Table 8**). The full list can go in a
   - **Eq. 16:** $\mathrm{ratio\_homog} = (dp/dz)_{tp}/(dp/dz)_h$ and $\phi_l^2 = (dp/dz)_{tp}/(dp/dz)_l$.
   - Square channel: $d$ = 8 mm is both the side and the hydraulic diameter.
 - **Physical reading of `ratio_homog`.** The homogeneous model assumes both phases move at the same velocity, as a well-mixed fluid.
-  - **≥ 1:** the measured gradient reaches the no-slip prediction, so the phases are strongly mixed and exchange momentum (churn, dispersed). Medians: dispersed 1.41, churn 1.32.
-  - **< 1:** the gas slips over a separated liquid layer and friction is lower than if the phases were mixed (wavy). Median wavy 0.75; low-$j_l$ wavy and slug runs 0.70–0.99.
+  - **≥ 1:** the measured gradient reaches the no-slip prediction, so the phases are strongly mixed and exchange momentum (churn, dispersed). Medians: dispersed 1.41, churn 1.34.
+  - **< 1:** the gas slips over a separated liquid layer and friction is lower than if the phases were mixed (wavy). Median wavy 0.76; low-$j_l$ wavy and slug runs with an agitated film 0.70–1.00 (slug run 91 at 0.997).
   - Annular runs have high values (median 2.9). The thin film and the fast gas core create more wall shear than the homogeneous model predicts. This is why annular is identified first, from the film (Section 3.4).
 - **Physical reading of $\phi_l^2$** (Lockhart–Martinelli two-phase multiplier): how many times the gradient exceeds that of the liquid flowing alone.
   - **Small:** the liquid dominates the friction and the gas is carried as bubbles (dispersed, median 4.3).
-  - **Large:** the gas adds much of the friction (churn 9.3, wavy 26, annular 254).
+  - **Large:** the gas adds much of the friction (churn 9.4, wavy 26, annular 257).
 
 #### 3.4 Decision rules
 
@@ -314,12 +315,12 @@ The rules are applied in order, and the first rule that matches assigns the patt
    - **a real liquid film with abruptly varying thickness:** `film_est_mean_mm` ≥ 0.4 mm, `film_jump_frac` ≥ 0.4, and the film detected in ≥ 15 % of samples.
      - The mean and detection conditions make sure the jumps belong to a real film, not to dropouts near the detection limit: thin wavy films can look jumpy with few detected points (Fig. 22b).
 2. **Pressure gate:** `ratio_homog` ≥ 1.0. The flow is at least as dissipative as a well-mixed flow.
-   - **Physical reading:** below the homogeneous prediction, a thick jumpy film is a separated flow with large waves and gas slipping over it. These are the low-$j_l$ wavy and slug runs (0.70–0.99), so the run is wavy.
+   - **Physical reading:** below the homogeneous prediction, a thick jumpy film is a separated flow with large waves and gas slipping over it. These are the low-$j_l$ wavy and slug runs (0.70–1.00; run 91 at 0.997), so the run is wavy.
 
 **Liquid-rich film** (high-velocity runs at the churn–annular transition). The run is neither annular nor agitated, and all of the following hold:
 - `film_est_mean_mm` < 0.5 mm: the probe sees only a thin, broken film, because at high $j_l$ and $j_g$ the interface is aerated and scatters the light;
 - `ratio_homog` ≥ 1.0: the pressure says the flow is mixed, not separated;
-- $\phi_l^2$ ≤ 15: friction still dominated by the liquid. Thin-film wavy runs with `ratio_homog` ≥ 1 have $\phi_l^2$ ≥ 17.9 (runs 7, 19, 20, 21, 22, 139), and annular runs are far higher. Runs 10–12 ($\phi_l^2$ = 9.3–11.9) fall in this branch: they were first logged as wavy-annular and are churn after reviewing the photos, in agreement with the criterion.
+- $\phi_l^2$ ≤ 15: friction still dominated by the liquid. Thin-film wavy runs with `ratio_homog` ≥ 1 have $\phi_l^2$ ≥ 18.1 (runs 7, 19, 20, 21, 22, 139), and annular runs are far higher. Runs 10–12 ($\phi_l^2$ = 9.4–12.0) fall in this branch: they were first logged as wavy-annular and are churn after reviewing the photos, in agreement with the criterion.
 - **Physical reading:** the bottom probe is "blinded" by aeration, so the film looks thin, as in wavy flow. The pressure gradient reveals a mixed, liquid-rich flow, so the run is churn or dispersed. Examples: runs 1, 4, 10, 11, 12, 138 (Fig. 22d, Fig. 17).
 
 **Why this order:**
@@ -328,14 +329,14 @@ The rules are applied in order, and the first rule that matches assigns the patt
 - Wavy is the default for any separated flow without mixing evidence.
 
 #### 3.5 Evaluation of the criterion
-- **Reference:** the visual classification of the 157 runs mapped to 7 classes (Table 6).
+- **Reference:** the visual classification of the 157 runs mapped to 7 classes.
 - **Eq. 17:**
   - agreement $= N_\mathrm{correct}/N$;
   - balanced accuracy $= \frac{1}{K}\sum_k \mathrm{recall}_k$, the mean recall per class.
   - Why both: the classes are unbalanced (wavy 44 runs, annular 10). Balanced accuracy keeps the large classes from dominating.
 - Honest statement: the thresholds were chosen on this same dataset. Robustness is shown by:
   - plateaus in the sensitivity analysis (Fig. 25);
-  - re-tuning all thresholds on a grid does not improve the defaults: in-sample the best balanced accuracy equals the default (89.4 %), and with leave-one-out validation it drops to 85.6 % (`variant_comparison_sensitivity_grid.csv`).
+  - re-tuning all thresholds on a grid does not improve the defaults: in-sample the best balanced accuracy equals the default (89.4 %), and with leave-one-out validation it drops to 87.6 % (`variant_comparison_sensitivity_grid.csv`).
 - The comparison between data variants (regular, trimmed only, processed, processed_v2) uses the same rules and thresholds.
 
 ### 4. Results (old Section 3)
@@ -353,15 +354,15 @@ Must contain, for each pattern: what the profile shows, and **which feature of t
 |---|---|---|
 | 12 (old 10) | Bubbly | `t2` mostly at 8 mm (liquid state), interrupted by bubbles at 2–6 mm. Practically no wall film, hence high bubble share. At higher $j_l$ the bubbles are closer together and less regular (keep the current comparison). |
 | 13 (old 11) | Plug | Long liquid bridges at 8 mm alternating with elongated bubbles. Below each bubble the film drains from about 2.2 mm (nose) to about 0.36 mm (tail). Bubbles take about 0.15 s to pass. Long bridges, so plug. At higher $j_l$ the bubbles are shorter, close to bubbly. |
-| 14 (old 12) | Slug | Same structure, but the bridges are short and broken by entrained bubbles, and the film varies more. This is why the mean bridge duration falls below 20 ms. Note: run 67 (14a) is classified **plug** by the criterion (Table 12); run 56 (14b) is slug. |
-| 15 (old 13) | Dispersed | No bridges. A film of about 0.5–1.5 mm with frequent abrupt jumps (high jump fraction). Describe it as the wavy–churn–dispersed transition, and keep the remark that no tube-height reading appears. Note: runs 8 and 9 are classified **churn** by the criterion ($\phi_l^2$ just above 5, Table 12); runs 74–77, 80, 81 are dispersed for both. |
+| 14 (old 12) | Slug | Same structure, but the bridges are short and broken by entrained bubbles, and the film varies more. This is why the mean bridge duration falls below 20 ms. Note: run 67 (14a) is classified **plug** by the criterion (Table 11); run 56 (14b) is slug. |
+| 15 (old 13) | Dispersed | No bridges. A film of about 0.5–1.5 mm with frequent abrupt jumps (high jump fraction). Describe it as the wavy–churn–dispersed transition, and keep the remark that no tube-height reading appears. Note: runs 8 and 9 are classified **churn** by the criterion ($\phi_l^2$ just above 5, Table 11); runs 74–77, 80, 81 are dispersed for both. |
 | 16 (old 14) | Wavy | A continuous thin film with smooth waves, often below detection (gaps). The old text about the spur at 0.95 s changes: it was a mixer wave, now removed (Fig. 8). |
 | 17 (new) | Churn and annular | Churn: few detected points, a broken film, and much of the film only visible through `t1`. Annular: almost everything below detection, film from `t1` about 0.05 mm, uniform. Files: churn run 93 ($j_l$ = 1.11, $j_g$ = 3.95 m/s), churn run 1 (liquid-rich branch, $j_l$ = 0.92, $j_g$ = 5.83 m/s), annular run 85 ($j_l$ = 0.14, $j_g$ = 20.95 m/s); 1 s window with the most detected samples. Both signals are drawn (detected `t2`, and the film from `t1` in orange) to show that "missing" data still carries the film. |
 
 Optional: draw the 2.0 mm and 7.5 mm state thresholds (Table 7) as dashed lines on all profiles.
 
 #### 4.2 Mean liquid film thickness by flow pattern (regenerate)
-- **Fig. 18:** bottom film estimate per pattern, 7 classes, 157 runs. File: `paper_figures/fig18_bottom_film_by_pattern.pdf`.
+- **Fig. 18:** bottom film estimate per pattern, 7 classes, 157 runs. File: `paper_figures/fig18a_bottom_film_by_pattern.pdf`.
   - Why this one: it excludes liquid bridges and includes films below detection, so it is a "film" thickness.
   - The old Fig. 15 mixed films with bridges: bubbly 6.65, plug 4.47, slug 2.47 mm.
 - Points to make (medians):
@@ -371,13 +372,13 @@ Optional: draw the 2.0 mm and 7.5 mm state thresholds (Table 7) as dashed lines 
   - wavy 0.27 mm;
   - annular 0.055 mm.
   - In the separated flows the film thins as $j_g$ grows (gas shear): dispersed and churn > wavy > annular.
-- **Fig. 19** (old Fig. 16, zoom, `paper_figures/fig19_bottom_film_separated_zoom.pdf`): the separated patterns only (dispersed, churn, wavy, annular), same colours as Fig. 18.
+- **Fig. 19** (old Fig. 16, zoom, `paper_figures/fig18b_bottom_film_separated_zoom.pdf`): the separated patterns only (dispersed, churn, wavy, annular), same colours as Fig. 18.
   - Wavy has the widest spread because it covers the widest range of conditions.
   - Annular is below the 0.5 mm manufacturer minimum. This is why the `t1` correction is essential.
 - Keep the remark that a sensor with a thinner range would be needed for annular films.
 
 #### 4.3 Probability density function of the film thickness (regenerate)
-- **Fig. 20:** one multi-panel figure replacing old Figs. 17–21, from processed_v2 (`paper_figures/fig20_kde_by_pattern.pdf`; single panels `fig20a_...` to `fig20f_...`). One panel per pattern with the runs of the current paper, **adding churn** (runs 26, 27, 94, 138, 1, 140). Run 40 (wavy) is now outside the evaluated region and is replaced by run 45. For annular, say that almost no `t2` is detected (99.7 % undetected, median), so there is no meaningful KDE.
+- **Fig. 20:** one multi-panel figure replacing old Figs. 17–21, from processed_v2 (`paper_figures/fig19_kde_by_pattern.pdf`; single panels `fig19a_...` to `fig19f_...`). One panel per pattern with the runs of the current paper, **adding churn** (runs 26, 27, 94, 138, 1, 140). Run 40 (wavy) is now outside the evaluated region and is replaced by run 45. For annular, say that almost no `t2` is detected (99.7 % undetected, median), so there is no meaningful KDE.
 - Points to make, each connected to a feature:
   - **Bubbly:** a dominant peak at 8 mm (liquid) and a broad one at 2–6 mm (bubbles). This motivates `bubble_share`.
   - **Plug and slug:** two peaks, film (0.5–1.5 mm) and channel height (8 mm), whose relative height depends on conditions. This motivates the bridge statistics; `n_peaks` = 2 for plug.
@@ -387,41 +388,41 @@ Optional: draw the 2.0 mm and 7.5 mm state thresholds (Table 7) as dashed lines 
 - Remove "it is possible to use those as an objective criteria".
 
 #### 4.4 Feature planes of the criterion (new, ready)
-Files in `data/gold_layer/paper_figures/` (`fig21a_...` to `fig22d_...`, re-plotted from `objective_criteria_5`). Each figure has the thresholds as dashed lines, and the runs coloured by visual pattern.
+Files in `data/gold_layer/paper_figures/` (`fig20a_...` to `fig21d_...`, re-plotted from `objective_criteria_6`). Each figure has the thresholds as dashed lines, and the runs coloured by visual pattern.
 
 **Fig. 21: intermittent family.**
-- (a) `fig21a_criterion_family.pdf`, bridge frequency vs bottom-film CV:
+- (a) `fig20a_criterion_family.pdf`, bridge frequency vs bottom-film CV:
   - all intermittent runs lie right of 0.1 Hz;
   - separated runs pile up at 0;
   - the exceptions are the disagreements: dispersed 54 and 55 and wavy 110 have bridges; slug 15, 16, 24, 91, 97, 158 and plug 99 have none or almost none.
-- (b) `fig21b_criterion_intermittent.pdf`, bubble share vs mean bridge duration:
+- (b) `fig20b_criterion_intermittent.pdf`, bubble share vs mean bridge duration:
   - bubbly is isolated at bubble share > 0.6;
   - plug sits above 20 ms and slug below.
 
 **Fig. 22: separated family.**
-- (a) `fig22a_criterion_separated.pdf`, film mean vs std:
+- (a) `fig21a_criterion_separated.pdf`, film mean vs std:
   - annular sits in the corner below 0.1 / 0.2 mm;
   - wavy has a larger std for the same mean than dispersed (waves vs a thick, mixed film).
-- (b) `fig22b_criterion_dispersed.pdf`, film mean vs jump fraction:
+- (b) `fig21b_criterion_dispersed.pdf`, film mean vs jump fraction:
   - dispersed and churn are in the "thick and jumpy" quadrant;
   - several wavy runs are there too. This is why a pressure gate is needed.
-- (c) `fig22c_criterion_agitated.pdf`, `ratio_homog` vs $\phi_l^2$:
+- (c) `fig21c_criterion_agitated.pdf`, `ratio_homog` vs $\phi_l^2$:
   - the gate at 1.0 removes the jumpy wavy and slug runs;
   - $\phi_l^2$ = 5 separates dispersed (below) from churn (above).
-- (d) `fig22d_criterion_liquid_rich.pdf`, same axes for the thin-film runs (only the runs discussed in the text are labelled):
+- (d) `fig21d_criterion_liquid_rich.pdf`, same axes for the thin-film runs (only the runs discussed in the text are labelled):
   - the high-velocity runs (visual churn 1, 4, 10, 11, 12, 138; visual dispersed 9, 134, 136) have ratio > 1 and $\phi_l^2$ < 15;
-  - every thin-film wavy run has ratio < 1 or $\phi_l^2$ ≥ 17.9.
+  - every thin-film wavy run has ratio < 1 or $\phi_l^2$ ≥ 18.1.
 
 Optional **Table 10:** median feature values per class (the medians in Table 8 above), from `objective_flow_pattern.csv`, with stratified mapped to wavy.
 
 #### 4.5 Agreement with the visual classification (new)
-- **Fig. 23:** `fig23_confusion_matrix.pdf` (157 runs, same pattern order on both axes). Points to make:
+- **Fig. 23:** `fig22_confusion_matrix.pdf` (157 runs, same pattern order on both axes). Points to make:
   - bubbly 11/11, churn 14/14, annular 10/10;
   - wavy 43/44, plug 30/33, slug 18/25, dispersed 13/20;
   - the errors sit next to the diagonal, between physically neighbouring patterns: plug↔slug, slug→wavy, dispersed→churn or slug, wavy→slug (run 110).
 - **Fig. 24:** visual vs objective map side by side.
-  - (a) `fig24a_flow_pattern_map_visual.pdf`: visual classification of the 157 runs with the 7 reference classes (runs 10–12 as churn).
-  - (b) `fig24b_flow_pattern_map_objective.pdf`, same markers.
+  - (a) `fig23a_flow_pattern_map_visual.pdf`: visual classification of the 157 runs with the 7 reference classes (runs 10–12 as churn).
+  - (b) `fig23b_flow_pattern_map_objective.pdf`, same markers.
   - Point to make: without using $j_l$ or $j_g$, the objective patterns fall in coherent regions consistent with Coleman and Garimella. Dispersed sits at high $j_l$, annular at the highest $j_g$, and plug at low $j_g$.
 - **Table 11:** agreement, balanced accuracy and per-class recall per data variant (`variant_comparison_criterion.csv`):
 
@@ -435,12 +436,12 @@ Optional **Table 10:** median feature values per class (the medians in Table 8 a
   Point to make: the gain comes from trimming. Without it, the leading blocks with no signal distort every fraction (bridges, film detection), and plug, slug, churn and dispersed are the most affected (plug recall 0.64 → 0.91, churn 0.71 → 1.0).
 
 #### 4.6 Disagreements, sensitivity and limitations (new)
-**Table 12:** the 18 disagreements grouped by cause (`objective_criteria_5/processed_v2/reclassified_runs.csv`). For each group, the physical explanation:
+**Table 11:** the 18 disagreements grouped by cause, with the number of runs and their $j_l$, $j_g$ ranges (no run identifiers) (`objective_criteria_6/processed_v2/reclassified_runs.csv`). For each group, the physical explanation:
 
 | Visual → objective | Runs | Physical explanation |
 |---|---|---|
 | dispersed → slug | 54, 55 | liquid bridges reach the probe at $j_g$ ≈ 1.2 m/s, at the bubbly–intermittent transition |
-| dispersed → churn | 8, 9, 133, 134, 136 | $\phi_l^2$ = 5.2–7.7, just above the dispersed threshold of 5. At the churn–dispersed transition the gas still adds part of the friction. |
+| dispersed → churn | 8, 9, 133, 134, 136 | $\phi_l^2$ = 5.3–7.8, just above the dispersed threshold of 5. At the churn–dispersed transition the gas still adds part of the friction. |
 | plug → slug | 35, 36 | mean bridge duration 12–15 ms < 20 ms: plugs short enough to look like slugs at the plug–slug transition |
 | plug → wavy | 99 | very rare bridges (0.02 Hz) in a 100 Hz record |
 | slug → plug | 67 | long bridges (25 ms) at $j_l$ = 0.97 m/s |
@@ -448,11 +449,12 @@ Optional **Table 10:** median feature values per class (the medians in Table 8 a
 | slug → wavy | 97, 158 | short records (< 1 000 samples): slow slugs not caught |
 | stratified-wavy → slug | 110 | occasional bridges (0.17 Hz) at 100 Hz: large waves touching the top wall, or unresolved mixer waves |
 
-- **Fig. 25:** `fig25_sensitivity_thresholds.pdf`. Each threshold sits on a plateau of balanced accuracy (e.g. the liquid-rich $\phi_l^2$ limit gives the same result from 15 to 17, the liquid-rich film limit from 0.40 to 1.0 mm), and jointly re-tuning all thresholds does not improve the defaults (leave-one-out 85.6 % vs 89.4 %). Can go to an appendix if space is short.
+- **Fig. 25:** `fig24_sensitivity_thresholds.pdf`. Most thresholds sit on a plateau of balanced accuracy (e.g. the liquid-rich $\phi_l^2$ limit gives the same result from 15 to 18, the liquid-rich film limit from 0.40 to 1.0 mm). The dispersed $\phi_l^2$ limit is the most sensitive: 5.5 gives 90.1 % (one more dispersed run), 6 gives 88.1 %. Jointly re-tuning all thresholds on a coarse grid does not improve the defaults (leave-one-out 87.6 % vs 89.4 %). Can go to an appendix if space is short.
 - **Limitations** to state:
   - one probe on the bottom wall: a thin stratified layer and the bottom of a wavy film look alike, and the top film of annular flow is not seen;
   - mixer waves and short slugs can't be resolved at 100 Hz;
-  - the pressure gate at 1.0 is close to the highest low-$j_l$ wavy run (0.99), so the uncertainty matters (2.3);
+  - the pressure gate at 1.0 is close to slug run 91 (0.997), so the uncertainty matters (2.3);
+  - the test-section temperature was not measured; it is approximated by the water temperature (2.2).
   - the thresholds were tuned and evaluated on the same 157 runs;
   - the visual reference itself is uncertain at transitions.
 
@@ -476,37 +478,37 @@ Must contain:
 
 ### Appendix (optional)
 - Full feature list (FPC §3.2) and the full threshold table.
-- `objective_criteria_5/processed_v2/mutual_information.pdf`: feature relevance, supporting the choice of features. Replace the code names with symbols first.
+- `objective_criteria_6/processed_v2/mutual_information.pdf`: feature relevance, supporting the choice of features. Replace the code names with symbols first.
 - Fig. 25, if moved out of 4.6.
 
 ---
 
 ## 4. Figure map
 
-All data figures of the revised paper are produced by `notebooks/paper_figures.ipynb` in **`data/gold_layer/paper_figures/`**. The notebook reads processed_v2 and the `objective_criteria_5` results, does not re-run the criterion, and checks that the classification is unchanged (88.5 % / 89.4 %).
+All data figures of the revised paper are produced by `notebooks/paper_figures.ipynb` in **`data/gold_layer/paper_figures/`**. The notebook reads processed_v2 and the `objective_criteria_6` results, does not re-run the criterion, and checks that the classification is unchanged (88.5 % / 89.4 %).
 
 | New | Old | Content | File in `data/gold_layer/paper_figures/` | Status |
 |---|---|---|---|---|
 | 1–5 | 1–5 | facility, photo, confocal schematic, principle, thickness indicatives | – | keep |
 | 6 | 6 | tube thickness before treatment (157 runs, 7 classes) | `fig06_tube_thickness_before_treatment.pdf` | done |
 | 7 | 7 | tube thickness after treatment (157 runs, 7 classes) | `fig07_tube_thickness_after_treatment.pdf` | done |
-| 8 | – | mixer-wave removal, run 46 | `fig08_mixer_wave_removal_run46.pdf` | done |
+| 8 | – | mixer-wave removal, run 46 | `fig08a_mixer_wave_before.pdf`, `fig08b_mixer_wave_after.pdf` (column, profile format) | done |
 | 9 | 8 | evaluated region | `fig09_evaluated_region.pdf` | done |
 | 10 | 9 | visual definition | camera images | edit in LaTeX (remove (d) stratified) |
-| 11 | – | decision-tree flowchart (TikZ, thresholds of version 5 = version 4) | `fig11_decision_tree.tex` / `.pdf` | done |
+| 11 | – | decision-tree flowchart (TikZ, thresholds of version 6 = version 4) | `fig11_decision_tree.tex` / `.pdf` | done |
 | 12–16 | 10–14 | bubbly, plug, slug, dispersed, wavy profiles (same runs: 65, 59; 33, 28; 67, 56; 8, 9; 45, 44) | `fig12a_...` to `fig16b_...` | done |
 | 17 | – | churn (runs 93, 1) and annular (run 85) profiles, with the film from $t_1$ | `fig17a_...`, `fig17b_...`, `fig17c_...` | done |
-| 18 | 15 | bottom film per pattern | `fig18_bottom_film_by_pattern.pdf` | done |
-| 19 | 16 | zoom on separated patterns | `fig19_bottom_film_separated_zoom.pdf` | done |
-| 20 | 17–21 | PDFs per pattern, incl. churn (multi-panel and single panels) | `fig20_kde_by_pattern.pdf`, `fig20a_...` to `fig20f_...` | done |
-| 21 | – | intermittent family (a, b) | `fig21a_criterion_family.pdf`, `fig21b_criterion_intermittent.pdf` | done |
-| 22 | – | separated family (a–d) | `fig22a_...` to `fig22d_...` | done |
-| 23 | – | confusion matrix (same order on both axes) | `fig23_confusion_matrix.pdf` | done |
-| 24 | – | visual vs objective map | `fig24a_flow_pattern_map_visual.pdf`, `fig24b_flow_pattern_map_objective.pdf` | done |
-| 25 | – | threshold sensitivity | `fig25_sensitivity_thresholds.pdf` | done |
+| 18 | 15 | bottom film per pattern | `fig18a_bottom_film_by_pattern.pdf` | done |
+| 19 | 16 | zoom on separated patterns | `fig18b_bottom_film_separated_zoom.pdf` | done |
+| 20 | 17–21 | PDFs per pattern, incl. churn (multi-panel and single panels) | `fig19_kde_by_pattern.pdf`, `fig19a_...` to `fig19f_...` | done |
+| 21 | – | intermittent family (a, b) | `fig20a_criterion_family.pdf`, `fig20b_criterion_intermittent.pdf` | done |
+| 22 | – | separated family (a–d) | `fig21a_...` to `fig21d_...` | done |
+| 23 | – | confusion matrix (same order on both axes) | `fig22_confusion_matrix.pdf` | done |
+| 24 | – | visual vs objective map | `fig23a_flow_pattern_map_visual.pdf`, `fig23b_flow_pattern_map_objective.pdf` | done |
+| 25 | – | threshold sensitivity | `fig24_sensitivity_thresholds.pdf` | done |
 | – | 9(d) | stratified image | – | remove |
 
-Note on the example runs: the dispersed profiles (runs 8, 9, Fig. 15) are classified as **churn** by the criterion, and the slug profile of Fig. 14a (run 67) as **plug** (Table 12). Either say so in the text or pick other examples (`PROFILE_RUNS` in the notebook). Runs classified dispersed include 74–77, 80, 81 (0318); slug runs classified slug include 13, 14, 25.
+Note on the example runs: the dispersed profiles (runs 8, 9, Fig. 15) are classified as **churn** by the criterion, and the slug profile of Fig. 14a (run 67) as **plug** (Table 11). Either say so in the text or pick other examples (`PROFILE_RUNS` in the notebook). Runs classified dispersed include 74–77, 80, 81 (0318); slug runs classified slug include 13, 14, 25.
 
 ## 5. Table map
 
@@ -519,9 +521,9 @@ Note on the example runs: the dispersed profiles (runs 8, 9, Fig. 15) are classi
 | 7 | – | sample states | Section 3.1 above | to create |
 | 8 | – | features, definitions, physical reading | Section 3.2 above | to create |
 | 9 | – | rules and thresholds | Section 3.4 above; `run_manifest.json` | to create |
-| 10 | – | median feature values per class (optional) | `objective_criteria_5/processed_v2/objective_flow_pattern.csv` | to create |
-| 11 | – | agreement per data variant | `objective_criteria_5/variant_comparison_criterion.csv` | to create |
-| 12 | – | disagreements by cause | `objective_criteria_5/processed_v2/reclassified_runs.csv` | to create |
+| 10 | – | median feature values per class (optional) | `objective_criteria_6/processed_v2/objective_flow_pattern.csv` | to create |
+| 11 | – | agreement per data variant | `objective_criteria_6/variant_comparison_criterion.csv` | to create |
+| 12 | – | disagreements by cause | `objective_criteria_6/processed_v2/reclassified_runs.csv` | to create |
 
 ## 6. Equation map
 
@@ -549,15 +551,17 @@ Note on the example runs: the dispersed profiles (runs 8, 9, Fig. 15) are classi
 | Visual stratified in the evaluated set (evaluated as wavy) | 48, 108, 147 (all classified wavy) |
 | Class sizes | bubbly 11, plug 33, slug 25, dispersed 20, churn 14, wavy 44, annular 10 |
 | Sampling rates in the evaluated set | 98 at 100 Hz, 50 at 1.3–2 kHz, 9 > 2 kHz |
-| Trimmed runs | 68 of 164 (up to 96 % of the file) |
+| Trimmed runs | 62 of the 157 (68 of all 164; up to 96 % of the file) |
 | Runs < 50 % missing `t2`, before → after trimming | 53 → 69 |
 | Mixer-wave runs changed | 21 (18 in the evaluated set) |
 | Short records (< 1 000 samples) | 10 |
 | Agreement / balanced accuracy | regular 77.1 / 78.2 %; trimmed, processed, processed_v2 88.5 / 89.4 %; without the 3 stratified runs 88.3 / 89.4 % |
 | Per class | bubbly 11/11, plug 30/33, slug 18/25, churn 14/14, dispersed 13/20, wavy 43/44, annular 10/10 |
-| Disagreements | 18 of 157 (Table 12) |
-| Threshold grid (balanced accuracy) | default 89.4 %; best in-sample 89.4 %; leave-one-out 85.6 % |
+| Disagreements | 18 of 157 (Table 11) |
+| Threshold grid (balanced accuracy) | default 89.4 %; best in-sample 89.4 %; leave-one-out 87.6 % |
 | Version 4 (runs 10–12 still wavy-annular), for reference | 86.6 / 88.5 %, 21 disagreements |
+| Temperatures (157 runs, mean ± std between runs) | water 29.7 ± 3.0 °C (23.2–38.9); air 24.8 ± 3.0 °C (19.6–30.1). Properties at the water temperature |
+| Water share of the heat capacity rate | median 99.8 %, minimum 83.0 % (annular); adiabatic mixture within 0.6 °C of the water temperature |
 | Tube thickness $t_1$ medians, before → after treatment [mm] | wavy 1.038 → 0.982; annular 1.035 → 0.985; dispersed 0.998 → 0.978; churn 0.998 → 0.976; bubbly, plug, slug 0.977–0.980 → 0.976–0.977 |
 | Missing `t2`, dispersed at similar $j_l$, $j_g$ | 74–82 % at ≈ 3.6 kHz vs ≈ 0 % at 100 Hz |
 | $j_l$ / $j_g$ range per class [m/s] | bubbly 0.96–2.00 / 0.26–0.80; plug 0.12–0.97 / 0.25–2.09; slug 0.12–1.50 / 0.80–6.50; dispersed 1.38–3.12 / 1.18–7.98; churn 0.60–1.40 / 3.38–10.46; wavy 0.05–0.80 / 2.71–15.76; annular 0.05–0.52 / 12.56–25.16 |
@@ -590,7 +594,7 @@ Suggestions; check each one before citing.
 - [x] Fig. 24(a): visual map of the 157 runs, 7 classes.
 - [ ] Decide whether to keep runs 8, 9 (dispersed → churn) and 67 (slug → plug) as profile examples.
 
-### Fixes to existing gold figures (done in `paper_figures/`; the `objective_criteria_5` files are untouched)
+### Fixes to existing gold figures (done in `paper_figures/`; the `objective_criteria_6` files are untouched)
 - [x] Liquid-rich figure: only the discussed runs are labelled, and the axis is widened.
 - [x] Confusion matrix: same order on both axes.
 - [x] Objective map: the region labels are drawn above the markers.

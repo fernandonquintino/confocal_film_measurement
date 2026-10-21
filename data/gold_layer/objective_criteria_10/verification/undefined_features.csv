@@ -1,0 +1,7 @@
+,runs
+N_p = 0 because < 50 detected samples (not estimated),9
+N_p = 0 with >= 50 detected samples,0
+J undefined (< 30 valid pairs),18
+S_b set to 0 (no bubble or film samples),1
+t_bridge set to 0 (no liquid bridge),89
+film mean/std undefined (< 5 values),0
