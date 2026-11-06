@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 
+from src.flow_pattern_criteria import CHANNEL_SIDE, merge_params
+
 # =========================================================
 # Mixer wave removal (processed_v2)
 # =========================================================
@@ -19,14 +21,17 @@ import pandas as pd
 # At 100 Hz one sample lasts 10 ms, so the duration test cannot be met and
 # those runs are left untouched (spurs and short slugs are not resolvable).
 
+# Lengths are dimensionless (``_rel`` = length / CHANNEL_SIDE, the nominal inner
+# side H = D_h of the square channel; value in mm in the comment). Times stay
+# dimensional: they are tied to the sample interval.
 MIXER_WAVE_PARAMS = {
-    'h_tall': 4.0,              # tall reading: t2 >= h_tall [mm]
-    'h_film': 2.0,              # neighbouring samples >= h_film belong to the event [mm]
-    'max_gap': 0.02,            # tall readings closer than this form one event [s]
-    'max_duration': 0.005,      # longest contiguous tall stretch of a mixer wave [s]
-    'context_window': 0.2,      # window before/after the event [s]
-    'context_max_film': 2.0,    # median valid t2 around the event [mm]
-    'context_max_tall': 0.1,    # fraction of tall readings around the event [-]
+    'h_tall_rel': 0.5,              # tall reading: t2 / H >= h_tall_rel (4.0 mm) [-]
+    'h_film_rel': 0.25,             # neighbouring samples with t2 / H >= h_film_rel belong to the event (2.0 mm) [-]
+    'max_gap': 0.02,                # tall readings closer than this form one event [s]
+    'max_duration': 0.005,          # longest contiguous tall stretch of a mixer wave [s]
+    'context_window': 0.2,          # window before/after the event [s]
+    'context_max_film_rel': 0.25,   # median valid t2 / H around the event (2.0 mm) [-]
+    'context_max_tall': 0.1,        # fraction of tall readings around the event [-]
 }
 
 
@@ -36,7 +41,12 @@ def detect_mixer_waves(df, params=None):
     waves. See the module header for the criteria.
     """
 
-    p = {**MIXER_WAVE_PARAMS, **(params or {})}
+    p = merge_params(MIXER_WAVE_PARAMS, params, 'MIXER_WAVE_PARAMS')
+
+    # Length parameters in mm (exact: CHANNEL_SIDE is a power of two)
+    p['h_tall'] = p['h_tall_rel'] * CHANNEL_SIDE
+    p['h_film'] = p['h_film_rel'] * CHANNEL_SIDE
+    p['context_max_film'] = p['context_max_film_rel'] * CHANNEL_SIDE
 
     time = df['time'].to_numpy(dtype=float)
     t2 = df['t2'].to_numpy(dtype=float)

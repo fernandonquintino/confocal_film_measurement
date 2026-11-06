@@ -6,6 +6,7 @@
 
 # Paper manuscript
 artigo/
+artigo_fluids/
 
 # Local data and notebooks
 data/bronze_layer/

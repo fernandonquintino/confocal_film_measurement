@@ -1,0 +1,3 @@
+parameter,value_s,dimensionless_at_median_j_m,run_value_min_s,run_value_max_s,runs_below_one_sample,runs_100hz_below_one_sample,runs_100hz
+min_dwell,0.005,2.6375000000000006,0.0008369694565648554,0.055526315789473694,76,76,98
+jump_lag,0.01,5.275000000000001,0.0016739389131297108,0.11105263157894739,53,53,98

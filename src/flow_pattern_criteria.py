@@ -8,15 +8,26 @@ from scipy.stats import gaussian_kde, kurtosis, skew
 # Constants
 # =========================================================
 
-CHANNEL_HEIGHT = 8.02   # processed t2 cap [mm]
-T1_THRESHOLD = 0.985    # tube thickness threshold used in processing [mm]
+# Measured geometry and optics, used by the sensor treatment (dimensional) -----
+CHANNEL_HEIGHT = 8.02   # processed t2 cap: inner side measured at the probe [mm]
+T1_THRESHOLD = 0.985    # wall reference of the tube-thickness correction [mm]
 N_WATER = 1.333
 N_BK7 = 1.519
+
+# Nominal geometry, used ONLY to make the empirical criterion lengths dimensionless.
+# Square channel: hydraulic diameter D_h = 4A/P = H. Parameters and features
+# ending in ``_rel`` are lengths divided by CHANNEL_SIDE (dimensionless); those
+# ending in ``_mm`` are in mm. H = 8 (a power of two) makes the conversion
+# value_rel * CHANNEL_SIDE exact in floating point, so the classification is
+# identical to the former thresholds in mm.
+CHANNEL_SIDE = 8.0      # nominal inner side H = D_h [mm]
 
 MIN_KDE_SAMPLES = 50    # minimum detected samples to estimate a KDE
 LOW_SAMPLE_LIMIT = 1000 # runs shorter than this are flagged
 
-KDE_GRID = np.linspace(0, 8.5, 851)
+KDE_GRID_MAX_REL = 1.0625   # KDE grid upper limit / H (8.5 mm) [-]
+KDE_MIN_STD_REL = 1.25e-4   # detected t2 with a smaller std / H has no KDE (1e-3 mm) [-]
+KDE_GRID = np.linspace(0, KDE_GRID_MAX_REL * CHANNEL_SIDE, 851)   # [mm]
 
 GAP_LONG = 0.1          # undetected gaps longer than this are "long blackouts" [s]
 
@@ -35,34 +46,62 @@ DETECTED_FEATURES = [
     'film_jump_frac', 'film_lag_corr',
 ]
 
-# Parameters used to compute the run features
+# Parameters used to compute the run features. Lengths are dimensionless
+# (``_rel`` = length / CHANNEL_SIDE; value in mm in the comment); times stay
+# dimensional, as they are tied to the sample interval and record length.
 FEATURE_PARAMS = {
-    'h_liq': 7.5,           # t2 >= h_liq  -> liquid bridges the channel [mm]
-    'h_film': 2.0,          # t2 <  h_film -> wall film [mm]
-    'min_dwell': 0.005,     # minimum duration of a liquid bridge [s]
-    'kde_prominence': 0.05, # KDE peak prominence relative to its maximum [-]
-    'jump_lag': 0.01,       # time lag of the film jump statistics [s]
-    'jump_min_change': 0.3, # film change counted as a jump within jump_lag [mm]
+    'h_liq_rel': 0.9375,           # t2 / H >= h_liq_rel -> liquid bridges the channel (7.5 mm) [-]
+    'h_film_rel': 0.25,            # t2 / H <  h_film_rel -> wall film (2.0 mm) [-]
+    'min_dwell': 0.005,            # minimum duration of a liquid bridge [s]
+    'kde_prominence': 0.05,        # KDE peak prominence relative to its maximum [-]
+    'jump_lag': 0.01,              # time lag of the film jump statistics [s]
+    'jump_min_change_rel': 0.0375, # film change / H counted as a jump within jump_lag (0.3 mm) [-]
 }
 
-# Thresholds of the objective criterion
+# Thresholds of the objective criterion (lengths dimensionless, see FEATURE_PARAMS)
 CRITERION_PARAMS = {
     'f_bridge_hz': 0.1,             # liquid bridge frequency -> intermittent [Hz]
     'bubble_share_min': 0.5,        # bubble / (bubble + film) -> bubbly [-]
     'plug_min_duration': 0.02,      # mean liquid bridge duration -> plug [s]
     'plug_min_f_liquid': 0.1,       # time fraction of liquid bridges -> plug [-]
-    'annular_max_mean': 0.1,        # thin film: mean film thickness -> annular [mm]
-    'annular_max_std': 0.2,         # uniform film: film thickness std -> annular [mm]
+    'annular_max_mean_rel': 0.0125, # thin film: mean bottom film / H -> annular (0.1 mm) [-]
+    'annular_max_std_rel': 0.025,   # uniform film: bottom film std / H -> annular (0.2 mm) [-]
     'dispersed_min_peaks': 2,       # KDE peaks of a continuous film -> dispersed [-]
-    'dispersed_min_mean': 0.4,      # thick film -> dispersed (with jumps) [mm]
+    'dispersed_min_mean_rel': 0.05, # thick film: mean bottom film / H -> dispersed (with jumps) (0.4 mm) [-]
     'dispersed_min_jump': 0.4,      # share of abrupt film changes -> dispersed [-]
     'dispersed_min_detected': 0.15, # film detected in a meaningful share of samples -> dispersed [-]
     'agitated_min_homog_ratio': 1.0, # measured / homogeneous dp/dz: phases strongly mixed [-]
     'dispersed_max_phi2': 5.5,      # liquid-reference multiplier close to the liquid-alone reference -> dispersed [-]
     'liquid_rich_max_phi2': 20.0,   # thin film seen, but multiplier between churn/dispersed (<= 15.1) and thin-film wavy (>= 24.8) -> churn/dispersed [-]
     # Refit in objective_criteria_10 with agitated_min_homog_ratio fixed at 1 (was 5.0 and 15.0)
-    'liquid_rich_max_film': 0.5,    # thin film seen by the probe (liquid-rich branch) [mm]
+    'liquid_rich_max_film_rel': 0.0625, # thin film seen by the probe: mean bottom film / H (liquid-rich branch) (0.5 mm) [-]
 }
+
+# Length keys in mm of objective_criteria_1..10, replaced by the ``_rel`` keys above
+_RENAMED_MM_KEYS = {
+    'h_liq': 'h_liq_rel', 'h_film': 'h_film_rel', 'jump_min_change': 'jump_min_change_rel',
+    'annular_max_mean': 'annular_max_mean_rel', 'annular_max_std': 'annular_max_std_rel',
+    'dispersed_min_mean': 'dispersed_min_mean_rel', 'liquid_rich_max_film': 'liquid_rich_max_film_rel',
+}
+
+
+def merge_params(defaults, params, name):
+    """
+    ``defaults`` overridden by ``params``. Unknown keys raise a KeyError, so that
+    an override with a former length key in mm is never silently ignored.
+    """
+
+    params = dict(params or {})
+    unknown = set(params) - set(defaults)
+
+    if unknown:
+        hints = {k: _RENAMED_MM_KEYS[k] for k in unknown if k in _RENAMED_MM_KEYS}
+        raise KeyError(
+            f'unknown {name} key(s) {sorted(unknown)}'
+            + (f'; lengths are now dimensionless (mm / CHANNEL_SIDE): use {hints}' if hints else '')
+        )
+
+    return {**defaults, **params}
 
 # Visual patterns merged into a target class (the probe sees waves in all
 # visual stratified runs, so stratified is evaluated as wavy)
@@ -71,9 +110,9 @@ REFERENCE_MAP = {'stratified': 'wavy'}
 # Runs below this liquid superficial velocity are excluded from the analysis [m/s]
 JL_MIN = 0.035
 
-# Kept for backward compatibility
-H_LIQ = FEATURE_PARAMS['h_liq']
-H_FILM = FEATURE_PARAMS['h_film']
+# Kept for backward compatibility (H_LIQ and H_FILM in mm)
+H_LIQ = FEATURE_PARAMS['h_liq_rel'] * CHANNEL_SIDE
+H_FILM = FEATURE_PARAMS['h_film_rel'] * CHANNEL_SIDE
 MIN_DWELL = FEATURE_PARAMS['min_dwell']
 KDE_PROMINENCE = FEATURE_PARAMS['kde_prominence']
 
@@ -227,7 +266,7 @@ def kde_peaks(x, grid=KDE_GRID, prominence=KDE_PROMINENCE):
 
     x = np.asarray(x, dtype=float)
 
-    if len(x) < MIN_KDE_SAMPLES or np.std(x) < 1e-3:
+    if len(x) < MIN_KDE_SAMPLES or np.std(x) < KDE_MIN_STD_REL * CHANNEL_SIDE:
         return None, np.array([]), np.array([])
 
     density = gaussian_kde(x, bw_method='scott')(grid)
@@ -245,10 +284,16 @@ def run_features(df, params=None):
     """
     Objective features of one confocal run.
 
-    ``params`` overrides entries of ``FEATURE_PARAMS``.
+    ``params`` overrides entries of ``FEATURE_PARAMS``. The signals stay in mm;
+    the dimensionless length parameters are converted with CHANNEL_SIDE.
     """
 
-    p = {**FEATURE_PARAMS, **(params or {})}
+    p = merge_params(FEATURE_PARAMS, params, 'FEATURE_PARAMS')
+
+    # Length parameters in mm (exact: CHANNEL_SIDE is a power of two)
+    p['h_liq'] = p['h_liq_rel'] * CHANNEL_SIDE
+    p['h_film'] = p['h_film_rel'] * CHANNEL_SIDE
+    p['jump_min_change'] = p['jump_min_change_rel'] * CHANNEL_SIDE
 
     # Samples removed as mixer waves (processed_v2) are excluded entirely
     n_mixer_wave = 0
@@ -430,6 +475,7 @@ def _film_estimate_features(df, h_liq):
     """
     Mean, standard deviation and coefficient of variation of the bottom film
     (``film_estimate``) and the fraction of samples where it is available.
+    Mean and std are given in mm (``_mm``) and divided by CHANNEL_SIDE (``_rel``).
     """
 
     estimate = film_estimate(df, h_liq)
@@ -440,6 +486,8 @@ def _film_estimate_features(df, h_liq):
             'film_est_coverage': len(valid) / len(estimate) if len(estimate) else 0.0,
             'film_est_mean_mm': np.nan,
             'film_est_std_mm': np.nan,
+            'film_est_mean_rel': np.nan,
+            'film_est_std_rel': np.nan,
             'film_est_cv': np.nan,
         }
 
@@ -450,8 +498,22 @@ def _film_estimate_features(df, h_liq):
         'film_est_coverage': len(valid) / len(estimate),
         'film_est_mean_mm': mean,
         'film_est_std_mm': std,
+        'film_est_mean_rel': mean / CHANNEL_SIDE,
+        'film_est_std_rel': std / CHANNEL_SIDE,
         'film_est_cv': std / mean if mean > 0 else np.nan,
     }
+
+
+def relative_film_columns(df):
+    """
+    ``film_est_mean_rel`` and ``film_est_std_rel`` of a feature table; derived
+    from the mm columns for tables of earlier versions that lack them.
+    """
+
+    if {'film_est_mean_rel', 'film_est_std_rel'} <= set(df.columns):
+        return df['film_est_mean_rel'], df['film_est_std_rel']
+
+    return df['film_est_mean_mm'] / CHANNEL_SIDE, df['film_est_std_mm'] / CHANNEL_SIDE
 
 
 def _gap_features(states, time, duration, long_gap=GAP_LONG):
@@ -549,14 +611,14 @@ def classify_frame(df, params=None):
     2. Separated family: no liquid bridges. Based on the mean and standard
        deviation of the bottom film (``film_estimate``, including the film
        below the detection limit):
-         - annular    : thin and uniform film (mean < annular_max_mean and
-                        std < annular_max_std). Runs without any film
+         - annular    : thin and uniform film (mean / H < annular_max_mean_rel and
+                        std / H < annular_max_std_rel). Runs without any film
                         information also fall here (film always below
                         detection)
          - agitated film (churn / dispersed): liquid film present with
                         abruptly varying thickness (the probe sees either the
-                        film or a bubble passing at a random height): mean >=
-                        dispersed_min_mean, film_jump_frac >= dispersed_min_jump
+                        film or a bubble passing at a random height): mean / H >=
+                        dispersed_min_mean_rel, film_jump_frac >= dispersed_min_jump
                         and the film detected in >= dispersed_min_detected of
                         the samples, or a KDE with >= dispersed_min_peaks peaks
                         (film + bubble layer); AND a mean pressure gradient at
@@ -564,7 +626,7 @@ def classify_frame(df, params=None):
                         prediction (phases strongly mixed; below it the gas
                         slips over a separated layer and the run is wavy).
          - liquid-rich film (churn / dispersed): the bottom probe sees only a
-                        thin, broken film (mean < liquid_rich_max_film; the
+                        thin, broken film (mean / H < liquid_rich_max_film_rel; the
                         interface is lost to aeration/scattering), but the
                         mean pressure gradient says the flow is mixed
                         (ratio_homog >= agitated_min_homog_ratio) and
@@ -583,7 +645,7 @@ def classify_frame(df, params=None):
     ``df``: ratio_homog and phi2_l.
     """
 
-    p = {**CRITERION_PARAMS, **(params or {})}
+    p = merge_params(CRITERION_PARAMS, params, 'CRITERION_PARAMS')
 
     bridge = df['bridge_freq_hz'].fillna(0).to_numpy() >= p['f_bridge_hz']
     bubble = df['bubble_share'].fillna(0).to_numpy() >= p['bubble_share_min']
@@ -592,14 +654,16 @@ def classify_frame(df, params=None):
         & (df['f_liquid'].fillna(0).to_numpy() >= p['plug_min_f_liquid'])
     )
 
-    film_mean = df['film_est_mean_mm'].fillna(0).to_numpy()
-    film_std = df['film_est_std_mm'].fillna(0).to_numpy()
+    # Bottom film mean and std divided by CHANNEL_SIDE (dimensionless)
+    film_mean_rel, film_std_rel = relative_film_columns(df)
+    film_mean = film_mean_rel.fillna(0).to_numpy()
+    film_std = film_std_rel.fillna(0).to_numpy()
 
-    annular = (film_mean < p['annular_max_mean']) & (film_std < p['annular_max_std'])
+    annular = (film_mean < p['annular_max_mean_rel']) & (film_std < p['annular_max_std_rel'])
 
     multi_peak = df['n_peaks'].fillna(0).to_numpy() >= p['dispersed_min_peaks']
     jumpy_film = (
-        (film_mean >= p['dispersed_min_mean'])
+        (film_mean >= p['dispersed_min_mean_rel'])
         & (df['film_jump_frac'].fillna(0).to_numpy() >= p['dispersed_min_jump'])
         & (1 - df['f_undetected'].fillna(1).to_numpy() >= p['dispersed_min_detected'])
     )
@@ -614,7 +678,7 @@ def classify_frame(df, params=None):
         & ~agitated
         & mixed
         & (phi2 <= p['liquid_rich_max_phi2'])
-        & (film_mean < p['liquid_rich_max_film'])
+        & (film_mean < p['liquid_rich_max_film_rel'])
     )
     agitated = agitated | liquid_rich
 

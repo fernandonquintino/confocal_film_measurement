@@ -5,7 +5,7 @@ import pandas as pd
 
 from scipy.signal import find_peaks, lombscargle, peak_widths
 
-from src.flow_pattern_criteria import FEATURE_PARAMS, film_estimate, load_run
+from src.flow_pattern_criteria import H_LIQ, film_estimate, load_run
 
 # =========================================================
 # Film dynamics (churn vs. wavy)
@@ -55,7 +55,7 @@ def _drop_mixer_waves(df):
     return df
 
 
-def resample_film(df, h_liq=FEATURE_PARAMS['h_liq'], bin_s=BIN_S):
+def resample_film(df, h_liq=H_LIQ, bin_s=BIN_S):   # h_liq in mm
     """
     Bottom film estimate averaged into ``bin_s`` bins. Returns the bin times
     and values (NaN where no valid sample fell in the bin).
