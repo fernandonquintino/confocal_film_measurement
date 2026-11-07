@@ -1,6 +1,6 @@
 # Project history
 
-Record of how the code, the results versions and the main decisions evolved. The per-version registry with the scores is `data/gold_layer/objective_criteria_versions.md`, and each version folder has its `run_manifest.json`. The original revision records (briefs, changelogs, validation notes) are in `docs/archive/` (local only; index in `docs/archive/README.md`). Unresolved items are in `OPEN_ITEMS.md` (local only).
+Record of how the code, the results versions and the main decisions evolved. The per-version registry with the scores is `data/gold_layer/objective_criteria_versions.md`, and each version folder has its `run_manifest.json`. The original revision records (briefs, changelogs, validation notes) are in `docs/archive/` (local only; index in `docs/archive/README.md`). The open author items listed in those records were closed by the author on 2026-11-07 (outdated or addressed otherwise).
 
 Scores are given as agreement / balanced accuracy (BA) on `processed_v2`, 157 runs, seven classes.
 
@@ -55,7 +55,7 @@ The film-dynamics features of versions 2–3 were dropped from the rules. `PAPER
 | Refractive index | $n_{BK7}$ = 1.519 (code value) |
 | Wall reference | Fixed 0.985 mm, described but not discussed further |
 | Calibration | Gravimetric points hard-coded in `old_notebooks/calibration_q1/q2.ipynb`; Coriolis data no longer exist; no full uncertainty propagation |
-| ±0.15 kPa | Confirmed by the author as the transducer tolerance used for the bounds (its type is still open, see `OPEN_ITEMS.md`) |
+| ±0.15 kPa | Confirmed by the author as the transducer tolerance used for the bounds |
 | Optional transition map | Draft in `data/gold_layer/optional_flow_map/` (`notebooks/optional_flow_map.ipynb`, re-run with v10); not inserted in the manuscript |
 
 ## 4. Not reproducible with the project materials
@@ -78,5 +78,5 @@ The original manuscript is split: a *Fluids* paper on the confocal method and sl
   - `scripts/convective_scaling_eval.py` and `objective_criteria_11/convective_scaling/findings.md` (evaluation only, not in the manuscript);
   - `artigo_fluids/confocal_full.tex`: full copy of the original with $D_h$ notation.
 - **Stage 3:** MDPI template cleaned into `artigo_fluids/confocal_fluids.tex`.
-- **Stage 4:** documentation consolidated (this file, `OPEN_ITEMS.md`, updated `README.md` and `FLOW_PATTERN_CRITERIA.md`, archive). `notebooks/prompt.md` (an unused draft) was removed.
+- **Stage 4:** documentation consolidated (this file, updated `README.md` and `FLOW_PATTERN_CRITERIA.md`, archive). `notebooks/prompt.md` (an unused draft) was removed. Bibliography corrected in the three copies of the bib (`artigo/` and `artigo_fluids/`): McAdams et al. (1942) pages 193–200 (author); Jones and Zuber (1975) DOI 10.1016/0301-9322(75)90015-4, co-author confirmed (Crossref); Jones (1976) pages 173–180 (Crossref). Journal format (author): no fixed abstract length or section order, follow `confocal_full.tex` and propose changes where needed; no GenAI statement.
 - **Carried forward from Stage 2:** bridge duration is not a slug length (slug units must merge bridges and aerated stretches); 98 of the 157 runs are at 100 Hz, which limits short-event resolution; the closest threshold margin is run 161, 0.0001 mm from the annular $\sigma_f$ limit.

@@ -35,7 +35,6 @@ phd_paper/
 ├── README.md                  # this file
 ├── FLOW_PATTERN_CRITERIA.md   # data treatment and objective criterion (scientific reference)
 ├── PROJECT_HISTORY.md         # revision rounds, results versions, settled decisions
-├── OPEN_ITEMS.md              # unresolved author items (local only)
 ├── docs/archive/              # original revision briefs, changelogs, validation notes (local only)
 ├── notebooks/                 # analysis pipeline (see below)
 ├── src/                       # Python modules
@@ -99,7 +98,7 @@ Other notebooks: `thickness`, `boxplots`, `flow_pattern_maps`, `selected_conditi
 ## Data and privacy rules
 
 - `data/bronze_layer/` and `data/silver_layer/` hold unpublished data. They are ignored by Git and must never be pushed before publication.
-- `artigo/`, `artigo_fluids/`, `docs/archive/` and `OPEN_ITEMS.md` are ignored as well.
+- `artigo/`, `artigo_fluids/` and `docs/archive/` are ignored as well.
 - `data/gold_layer/` (figures and result tables) and the code are tracked.
 - Stage files by explicit path; do not use `git add -A`.
 
