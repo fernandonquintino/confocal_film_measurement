@@ -15,6 +15,22 @@ FIG_SIZE_WIDE = (17.6 * CM, 8.4 * CM)  # double column
 
 VISUAL_PATTERNS = ['bubbly', 'plug', 'slug', 'dispersed', 'churn', 'wavy', 'stratified', 'annular']
 
+# Figure time labels. The camera and the confocal sensor were not synchronized: each time axis starts at
+# its own record (camera: first recorded frame; confocal: first sample), so the two zeros differ.
+T_CONFOCAL_LABEL = r'$t$ [s] (confocal record)'
+T_CAMERA_LABEL = r'$t_{cam}$ [ms] (camera record)'
+TIME_ORIGIN_NOTE = 'Camera and confocal times start at their own records (not synchronized).'
+
+
+def run_label(pattern, jl, jg):
+    """Run identification for figures: pattern and superficial velocities (run ids mean nothing to a reader)."""
+    return f'{pattern}, $j_l$ = {jl:.2f} m/s, $j_g$ = {jg:.2f} m/s'
+
+
+def run_file_tag(pattern, jl, jg):
+    """File-name form of run_label, without dots (LaTeX-safe): plug_jl0p25_jg0p52."""
+    return f'{pattern}_jl{jl:.2f}_jg{jg:.2f}'.replace('.', 'p')
+
 
 def pattern_styles(map_categories):
     """

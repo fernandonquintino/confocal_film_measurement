@@ -5,7 +5,8 @@ bubble durations, intermittency, length ratio, lengths with U = j_m, film below 
 Camera (bronze layer, scripts/extract_camera_frames.py): preliminary velocity of the interfaces.
 
 Writes a new folder data/gold_layer/slug_analysis_<N>/ (never overwrites) with CSV tables,
-figures and run_manifest.json.
+run_manifest.json and the figures: PDF only, one panel per file, runs identified in the figures by
+pattern and superficial velocities (run ids stay in the CSV tables for traceability).
 
 Usage: python scripts/slug_flow_analysis.py
 """
@@ -24,6 +25,8 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from src.flow_pattern_criteria import CHANNEL_SIDE, load_run          # noqa: E402
+from src.flow_pattern_report import (FIG_SIZE, FIG_SIZE_WIDE, T_CONFOCAL_LABEL,   # noqa: E402
+                                     run_file_tag, run_label)
 from src.output_versions import next_version_dir, write_manifest     # noqa: E402
 from src.slug_units import (SLUG_PARAMS, SLUG_PARAM_GRID, detect_slug_units,   # noqa: E402
                             film_below_bubbles, unit_statistics)
@@ -42,6 +45,12 @@ CAMERA_SPREAD_MAX = 0.10                             # max relative spread of th
 
 plt.rcParams.update({"font.size": 8, "axes.spines.top": False, "axes.spines.right": False,
                      "axes.grid": True, "grid.color": "0.9", "grid.linewidth": 0.6})
+
+
+def save(fig, folder, name):
+    """Figures are written as PDF only."""
+    fig.savefig(folder / f"{name}.pdf")
+    plt.close(fig)
 
 
 def scatter(ax, df, x, y, flag=None, **kw):
@@ -121,6 +130,7 @@ def main():
     res["rate"] = np.where(res.sampling_hz > 200, "kHz", "0.1 kHz")
     res["f_uncertain"] = res.f_slug_p90 > 2 * res.f_slug_p10          # frequency depends on the parameters
     res["ts_resolution"] = res.t_s_med <= 1.5 * res.dt                 # median slug of one sample
+    res["ratio_uncertain"] = res.f_uncertain | res.ts_resolution        # t_b / t_s depends on both
 
     cam = []
     for folder in sorted(CAMERA.glob("run_*")):
@@ -133,23 +143,25 @@ def main():
     pd.concat(units_all).to_csv(out / "slug_units.csv", index=False)
     pd.DataFrame(sens).to_csv(out / "slug_sensitivity.csv", index=False)
 
-    # ---------------------------------------------------------------- figures
-    # 1 slug frequency vs j_l and j_g, with the sensitivity band
-    fig, axs = plt.subplots(1, 2, figsize=(7.0, 2.8), sharey=True, layout="constrained")
-    for ax, x, lab in zip(axs, ["jl", "jg"], ["$j_l$ [m/s]", "$j_g$ [m/s]"]):
+    # ---------------------------------------------------------------- figures (PDF only, one panel each)
+    one = FIG_SIZE
+    res["jg_jm"] = res.jg / res.jm
+    res["jg_jl"] = res.jg / res.jl
+
+    # slug frequency vs j_l and vs j_g, with the sensitivity band
+    for x, lab in [("jl", "$j_l$ [m/s]"), ("jg", "$j_g$ [m/s]")]:
+        fig, ax = plt.subplots(figsize=one, layout="constrained")
         for pat, g in res.groupby("pattern"):
             ax.errorbar(g[x], g.f_slug, yerr=[g.f_slug - g.f_slug_p10, g.f_slug_p90 - g.f_slug], fmt="none",
                         ecolor=COLORS[pat], elinewidth=0.8, alpha=0.6, zorder=2)
         scatter(ax, res, x, "f_slug", flag="f_uncertain")
         ax.set_xlabel(lab)
-    axs[0].set_ylabel("slug frequency $f_s$ [Hz]")
-    axs[0].legend(frameon=False)
-    fig.savefig(out / "fig_slug_frequency.png", dpi=200)
-    fig.savefig(out / "fig_slug_frequency.pdf")
-    plt.close(fig)
+        ax.set_ylabel("slug frequency $f_s$ [Hz]")
+        ax.legend(frameon=False)
+        save(fig, out, f"fig_slug_frequency_vs_{x}")
 
-    # 2 slug frequency vs liquid-bridge frequency
-    fig, ax = plt.subplots(figsize=(3.4, 3.0), layout="constrained")
+    # slug frequency vs liquid-bridge frequency
+    fig, ax = plt.subplots(figsize=one, layout="constrained")
     scatter(ax, res, "f_bridge", "f_slug", flag="f_uncertain")
     lim = [0, max(res.f_slug.max(), res.f_bridge.max()) * 1.05]
     ax.plot(lim, lim, color="0.4", lw=0.8, ls="--", zorder=1)
@@ -157,12 +169,10 @@ def main():
     ax.set_xlabel("liquid-bridge frequency $f_{bridge}$ [Hz]")
     ax.set_ylabel("slug frequency $f_s$ [Hz]")
     ax.legend(frameon=False)
-    fig.savefig(out / "fig_slug_vs_bridge_frequency.png", dpi=200)
-    plt.close(fig)
+    save(fig, out, "fig_slug_vs_bridge_frequency")
 
-    # 3 intermittency vs gas fraction of the mixture velocity (no-slip, liquid slug without gas: beta = j_g / j_m)
-    fig, ax = plt.subplots(figsize=(3.4, 3.0), layout="constrained")
-    res["jg_jm"] = res.jg / res.jm
+    # intermittency vs gas fraction of the mixture velocity (unit at j_m, slug without gas: j_g / j_m)
+    fig, ax = plt.subplots(figsize=one, layout="constrained")
     scatter(ax, res, "jg_jm", "intermittency", flag="f_uncertain")
     ax.plot([0, 1], [0, 1], color="0.4", lw=0.8, ls="--", zorder=1)
     ax.set_xlim(0, 1)
@@ -170,56 +180,57 @@ def main():
     ax.set_xlabel("$j_g / j_m$ [-]")
     ax.set_ylabel(r"intermittency $\sum t_b / \sum(t_s + t_b)$ [-]")
     ax.legend(frameon=False, loc="upper left")
-    fig.savefig(out / "fig_intermittency.png", dpi=200)
-    plt.close(fig)
+    save(fig, out, "fig_intermittency")
 
-    # 4 lengths with U = j_m and the measured ratio
-    fig, axs = plt.subplots(1, 3, figsize=(8.5, 2.8), layout="constrained")
-    scatter(axs[0], res, "jm", "Ls_Dh", flag="ts_resolution")
-    axs[0].set_ylabel("$L_S / D_h$ (U = $j_m$) [-]")
-    scatter(axs[1], res, "jm", "Lb_Dh", flag="f_uncertain")
-    axs[1].set_ylabel("$L_B / D_h$ (U = $j_m$) [-]")
-    for ax in axs[:2]:
+    # lengths with U = j_m and the measured ratio
+    for y, flag, lab, name in [("Ls_Dh", "ts_resolution", "$L_S / D_h$ (U = $j_m$) [-]", "fig_slug_length"),
+                               ("Lb_Dh", "f_uncertain", "$L_B / D_h$ (U = $j_m$) [-]", "fig_bubble_length")]:
+        fig, ax = plt.subplots(figsize=one, layout="constrained")
+        scatter(ax, res, "jm", y, flag=flag)
         ax.set_xlabel("$j_m$ [m/s]")
+        ax.set_ylabel(lab)
         ax.set_yscale("log")
-    res["jg_jl"] = res.jg / res.jl
-    scatter(axs[2], res, "jg_jl", "ratio_bs", flag="ts_resolution")
-    axs[2].set_xscale("log")
-    axs[2].set_yscale("log")
-    axs[2].set_xlabel("$j_g / j_l$ [-]")
-    axs[2].set_ylabel("median $t_b / t_s$ = $L_B / L_S$ [-]")
-    axs[0].legend(frameon=False)
-    fig.savefig(out / "fig_slug_lengths.png", dpi=200)
-    plt.close(fig)
+        ax.legend(frameon=False)
+        save(fig, out, name)
+    fig, ax = plt.subplots(figsize=one, layout="constrained")
+    scatter(ax, res, "jg_jl", "ratio_bs", flag="ratio_uncertain")
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_xlabel("$j_g / j_l$ [-]")
+    ax.set_ylabel("median $t_b / t_s$ = $L_B / L_S$ [-]")
+    ax.legend(frameon=False)
+    save(fig, out, "fig_length_ratio")
 
-    # 5 film below the elongated bubbles, plug series at j_g ~ 0.52 m/s
-    fig, axs = plt.subplots(1, 2, figsize=(7.0, 2.8), layout="constrained")
+    # film below the elongated bubbles, plug series at j_g ~ 0.52 m/s
+    fig, ax = plt.subplots(figsize=one, layout="constrained")
     blues = plt.get_cmap("Blues")(np.linspace(0.35, 0.95, len(FILM_SERIES)))
     film_rows = []
     for c, rid in zip(blues, FILM_SERIES):
         units = pd.concat(units_all).query("run_id == @rid")
         x, film, nb = film_below_bubbles(data[rid], units)
         rr = res.set_index("run_id").loc[rid]
-        axs[0].plot(x, film / CHANNEL_SIDE, color=c, lw=1.6, label=f"$j_l$ = {rr.jl:.2f}")
+        ax.plot(x, film / CHANNEL_SIDE, color=c, lw=1.6, label=f"$j_l$ = {rr.jl:.2f} m/s")
         film_rows += [{"run_id": rid, "x": xi, "film_mm": fi, "n_bubbles": ni} for xi, fi, ni in zip(x, film, nb)]
-    axs[0].set_xlabel("position in the bubble $(t - t_{slug,end}) / t_b$ [-]")
-    axs[0].set_ylabel(r"bottom film $\delta_f / D_h$ [-]")
-    axs[0].legend(frameon=False, title="$j_g$ = 0.52 m/s", fontsize=7)
+    ax.set_xlabel("position in the bubble $(t - t_{slug,end}) / t_b$ [-]")
+    ax.set_ylabel(r"bottom film $\delta_f / D_h$ [-]")
+    ax.legend(frameon=False, title="plug, $j_g$ = 0.52 m/s", fontsize=7)
+    save(fig, out, "fig_film_below_bubbles_profiles")
     fr = pd.DataFrame(film_rows)
+    fr.to_csv(out / "film_below_bubbles.csv", index=False)
+
     agg = fr.groupby("run_id").apply(lambda g: pd.Series({
         "front": g.film_mm[g.x < 0.15].median(), "end": g.film_mm[g.x > 0.85].median()})).reset_index()
     agg = agg.merge(res[["run_id", "jl"]], on="run_id")
-    axs[1].plot(agg.jl, agg.front / CHANNEL_SIDE, "o-", color=COLORS["plug"], label="front of the bubble ($x$ < 0.15)")
-    axs[1].plot(agg.jl, agg.end / CHANNEL_SIDE, "s--", color="#1c5cab", label="end of the bubble ($x$ > 0.85)")
-    axs[1].set_xlabel("$j_l$ [m/s]")
-    axs[1].set_ylabel(r"$\delta_f / D_h$ [-]")
-    axs[1].legend(frameon=False, fontsize=7)
-    fig.savefig(out / "fig_film_below_bubbles.png", dpi=200)
-    plt.close(fig)
-    fr.to_csv(out / "film_below_bubbles.csv", index=False)
+    fig, ax = plt.subplots(figsize=one, layout="constrained")
+    ax.plot(agg.jl, agg.front / CHANNEL_SIDE, "o-", color=COLORS["plug"], label="front of the bubble ($x$ < 0.15)")
+    ax.plot(agg.jl, agg.end / CHANNEL_SIDE, "s--", color="#1c5cab", label="end of the bubble ($x$ > 0.85)")
+    ax.set_xlabel("$j_l$ [m/s]")
+    ax.set_ylabel(r"$\delta_f / D_h$ [-]")
+    ax.legend(frameon=False, fontsize=7, title="plug, $j_g$ = 0.52 m/s")
+    save(fig, out, "fig_film_below_bubbles_front_end")
 
-    # 6 camera interface velocity vs j_m (preliminary)
-    fig, ax = plt.subplots(figsize=(3.4, 3.0), layout="constrained")
+    # camera interface velocity vs j_m (preliminary)
+    fig, ax = plt.subplots(figsize=one, layout="constrained")
     ok = res[res.U_cam_ok]
     scatter(ax, ok, "jm", "U_cam")
     bad = res[~res.U_cam_ok & res.U_cam.notna()]
@@ -233,33 +244,38 @@ def main():
     ax.set_xlabel("$j_m$ [m/s]")
     ax.set_ylabel("camera interface velocity $U$ [m/s]")
     ax.legend(frameon=False, fontsize=7)
-    fig.savefig(out / "fig_camera_velocity.png", dpi=200)
-    plt.close(fig)
+    save(fig, out, "fig_camera_velocity")
 
-    # 7 quality control: detection on the confocal traces
-    fig, axs = plt.subplots(len(QC_RUNS), 1, figsize=(8.0, 1.5 * len(QC_RUNS)), layout="constrained")
-    for ax, rid in zip(axs, QC_RUNS):
+    # quality control: detection on the confocal traces, one figure per run
+    qc = out / "detection_qc"
+    qc.mkdir()
+    for rid in QC_RUNS:
         df = data[rid]
         rr = res.set_index("run_id").loc[rid]
         t0 = 0.0 if rr.sampling_hz > 200 else 5.0
         t1 = t0 + (1.0 if rr.sampling_hz > 200 else 10.0)
         w = (df.time >= t0) & (df.time < t1)
         mw = df.mixer_wave.astype(bool)
-        ax.plot(df.time[w & ~mw], df.t2[w & ~mw], ".", ms=1.5, color="0.15")
-        ax.plot(df.time[w & mw], np.full((w & mw).sum(), 8.3), "|", ms=4, color="#eb6834", label="flagged as mixer wave")
+        fig, ax = plt.subplots(figsize=(FIG_SIZE_WIDE[0], 2.0), layout="constrained")
+        ax.plot(df.time[w & ~mw], df.t2[w & ~mw], ".", ms=1.5, color="0.15", label=r"$\delta_2$")
+        ax.plot(df.time[w & mw], np.full((w & mw).sum(), 8.3), "|", ms=4, color=COLORS["slug"],
+                label="flagged as mixer wave")
         units = pd.concat(units_all).query("run_id == @rid")
+        shown = False
         for u in units.itertuples():
             if u.s_end > t0 and u.s_start < t1:
-                ax.axvspan(u.s_start, u.s_end, color="#2a78d6", alpha=0.18, lw=0)
+                ax.axvspan(u.s_start, u.s_end, color=COLORS["plug"], alpha=0.18, lw=0,
+                           label=None if shown else "detected liquid slug")
+                shown = True
         ax.set_xlim(t0, t1)
-        ax.set_ylim(-0.2, 8.6)
-        ax.set_ylabel("$\\delta_2$ [mm]")
-        ax.set_title(f"run {rid} ({rr.date_identifier}), {rr.pattern}, $j_l$ = {rr.jl:.2f}, $j_g$ = {rr.jg:.2f} m/s, "
-                     f"{rr.sampling_hz / 1000:.2f} kHz: $f_s$ = {rr.f_slug:.2f} Hz ({rr.f_slug_p10:.2f}-{rr.f_slug_p90:.2f}), "
+        ax.set_ylim(-0.2, 9.4)
+        ax.set_ylabel(r"$\delta_2$ [mm]")
+        ax.set_xlabel(T_CONFOCAL_LABEL)
+        ax.set_title(f"{run_label(rr.pattern, rr.jl, rr.jg)}, {rr.sampling_hz / 1000:.1f} kHz: "
+                     f"$f_s$ = {rr.f_slug:.2f} Hz ({rr.f_slug_p10:.2f}-{rr.f_slug_p90:.2f}), "
                      f"$f_{{bridge}}$ = {rr.f_bridge:.2f} Hz", fontsize=7, loc="left")
-    axs[-1].set_xlabel("t [s]  (shaded: detected liquid slugs)")
-    fig.savefig(out / "fig_detection_qc.png", dpi=170)
-    plt.close(fig)
+        ax.legend(frameon=False, fontsize=6, loc="center left", bbox_to_anchor=(1.0, 0.5))
+        save(fig, qc, f"fig_detection_qc_{run_file_tag(rr.pattern, rr.jl, rr.jg)}")
 
     write_manifest(out, "Slug units from the confocal signal (plug and slug runs) and preliminary camera "
                         "interface velocity", criteria_version=CRITERIA_VERSION, slug_params=SLUG_PARAMS,
