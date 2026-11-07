@@ -1,6 +1,6 @@
 # Confocal data treatment and objective flow pattern criteria
 
-This document describes exactly how the confocal runs are treated (silver layer variants `processed` and `processed_v2`) and the objective criterion that assigns a flow pattern to each run. Values are those of results version **`objective_criteria_10`** (`data/gold_layer/objective_criteria_10/run_manifest.json`): the criterion of version 4 with the two $\phi_l^2$ limits refitted (dispersed 5.5, liquid-rich 20; $R_h$ limit kept at 1), evaluated against the revised visual labels (runs 10 to 12 relabelled churn, section 2), with the fluid properties at the water temperature, the gas mass flux with the density at the orifice meter and the Churchill friction factor with the laminar-equivalent Reynolds number of a square duct (section 3.3). Checks of this version are in `notebooks/criterion_verification.ipynb` (outputs in `objective_criteria_10/verification/`).
+This document describes exactly how the confocal runs are treated (silver layer variants `processed` and `processed_v2`) and the objective criterion that assigns a flow pattern to each run. Values are those of results version **`objective_criteria_11`** (`data/gold_layer/objective_criteria_11/run_manifest.json`). Version 11 is version 10 with the length thresholds written relative to the hydraulic diameter $D_h$ (section 4.4); the classification is identical. Version 10 is the criterion of version 4 with the two $\phi_l^2$ limits refitted (dispersed 5.5, liquid-rich 20; $R_h$ limit kept at 1), evaluated against the revised visual labels (runs 10 to 12 relabelled churn, section 2), with the fluid properties at the water temperature, the gas mass flux with the density at the orifice meter and the Churchill friction factor with the laminar-equivalent Reynolds number of a square duct (section 3.3). Checks of this version are in `notebooks/criterion_verification.ipynb` (outputs in `objective_criteria_11/verification/`).
 
 | Item | Location |
 |---|---|
@@ -9,8 +9,9 @@ This document describes exactly how the confocal runs are treated (silver layer 
 | Analysis notebook | `notebooks/kde_plots.ipynb`, section *Objective flow pattern criterion* |
 | Verification notebook | `notebooks/criterion_verification.ipynb` (precision/recall, sampling rates, pressure tolerance, wall reference, 100 Hz downsampling, baseline comparison) |
 | Results | `data/gold_layer/objective_criteria_<N>/` (one folder per version, see `data/gold_layer/objective_criteria_versions.md`) |
+| Convective scaling (evaluation only) | `scripts/convective_scaling_eval.py` → `objective_criteria_11/convective_scaling/` (`findings.md`) |
 
-Each confocal run holds about 10 000 samples of `time` and three thicknesses: `t1` (tube wall, nominally 0.98 mm), `t2` (liquid film, measured from the inner wall) and `t3`. Channel: 8 mm square, horizontal, air-water.
+Each confocal run holds about 10 000 samples of `time` and three thicknesses: `t1` (tube wall, nominally 0.98 mm), `t2` (liquid film, measured from the inner wall) and `t3`. Channel: square, horizontal, air-water, internal side 8 mm (nominal), equal to the hydraulic diameter $D_h$ = 8.0 mm (`CHANNEL_SIDE`). The inner side measured with the probe at the visualization section is 8.02 mm; it is used only in the sensor treatment (section 1).
 
 ---
 
@@ -55,12 +56,12 @@ In separated flows, liquid accumulated at the mixer is released as short waves t
 
 Starting from `processed` (`src/confocal_treatment.py`, `MIXER_WAVE_PARAMS`):
 
-1. **Event detection.** Tall readings (`t2` ≥ 4.0 mm) closer than 20 ms are grouped into one event.
+1. **Event detection.** Tall readings (`t2` ≥ 0.5 $D_h$ = 4.0 mm) closer than 20 ms are grouped into one event.
 2. **Removal test.** An event is removed only if all three conditions hold:
    - **short**: its longest contiguous run of tall readings lasts less than 5 ms;
-   - **inside a film**: the median valid `t2` within 0.2 s before and after the event is below 2.0 mm;
+   - **inside a film**: the median valid `t2` within 0.2 s before and after the event is below 0.25 $D_h$ (2.0 mm);
    - **isolated**: fewer than 10 % of the readings within that window are tall.
-3. **Extent.** The removed event is extended to the neighbouring samples with `t2` ≥ 2.0 mm (its rise and fall).
+3. **Extent.** The removed event is extended to the neighbouring samples with `t2` ≥ 0.25 $D_h$ (2.0 mm) (its rise and fall).
 4. **Output.** Removed samples get `t2` = NaN and are flagged in a boolean `mixer_wave` column. The analysis then excludes them entirely instead of counting them as undetected.
 
 At 100 Hz one sample lasts 10 ms, so the duration test cannot be met and those runs are unchanged: mixer waves and short slugs cannot be told apart at that rate.
@@ -87,9 +88,9 @@ All quantities are computed per run, after excluding the `mixer_wave` samples (p
 
 | State | Definition | Physical meaning |
 |---|---|---|
-| liquid | `t2` ≥ 7.5 mm | liquid bridges the channel (liquid slug, bubbly liquid) |
-| bubble | 2.0 ≤ `t2` < 7.5 mm | bubble, or nose/tail of an elongated bubble |
-| film | `t2` < 2.0 mm | wall film (separated flow or below an elongated bubble) |
+| liquid | `t2`/$D_h$ ≥ 0.9375 (7.5 mm) | liquid bridges the channel (liquid slug, bubbly liquid) |
+| bubble | 0.25 ≤ `t2`/$D_h$ < 0.9375 | bubble, or nose/tail of an elongated bubble |
+| film | `t2`/$D_h$ < 0.25 (2.0 mm) | wall film (separated flow or below an elongated bubble) |
 | undetected | `t2` missing | film below detection or steep interface |
 
 ### 3.2 Features
@@ -100,16 +101,17 @@ All quantities are computed per run, after excluding the `mixer_wave` samples (p
 | `bubble_share` | f_bubble / (f_bubble + f_film): whether the interfaces seen are bubbles or a wall film |
 | `bridge_freq_hz` | number of liquid bridges per second. A bridge is a contiguous run of liquid samples lasting at least 5 ms. |
 | `bridge_mean_duration_s` | mean duration of those bridges |
-| `n_peaks` | number of peaks of the KDE of the detected `t2`: Gaussian KDE (Scott bandwidth) on 0–8.5 mm, prominence ≥ 5 % of the maximum; needs ≥ 50 detected samples |
-| bottom film estimate | per sample: `t2` if detected and < 7.5 mm; else, if `t1` > 0.985 mm, the film merged with the wall reading $(t_1 - 0.985)\,n_\mathrm{water}/n_\mathrm{BK7}$ (unclipped `t1` from the regular run); else no value. It includes films thinner than the detection limit. |
-| `film_est_mean_mm`, `film_est_std_mm` | mean and standard deviation of the bottom film estimate (needs ≥ 5 values) |
-| `film_jump_frac` | among pairs of detected samples (`t2` < 7.5 mm) 10 ms apart, the fraction whose thickness changes by more than 0.3 mm (needs ≥ 30 pairs). The fixed time lag keeps 100 Hz and kHz runs comparable. High values mean the probe sees either the film or a bubble passing at a random height; low values mean smooth waves. |
+| `n_peaks` | number of peaks of the KDE of the detected `t2`: Gaussian KDE (Scott bandwidth) on 0–1.0625 $D_h$ (0–8.5 mm), prominence ≥ 5 % of the maximum; needs ≥ 50 detected samples |
+| bottom film estimate | per sample: `t2` if detected and below the liquid state; else, if `t1` > 0.985 mm, the film merged with the wall reading $(t_1 - 0.985)\,n_\mathrm{water}/n_\mathrm{BK7}$ (unclipped `t1` from the regular run); else no value. It includes films thinner than the detection limit. |
+| `film_est_mean_mm`, `film_est_std_mm` | mean and standard deviation of the bottom film estimate (needs ≥ 5 values); used in the measurement figures |
+| `film_est_mean_rel`, `film_est_std_rel` | the same divided by $D_h$ ($\bar\delta_f/D_h$, $\sigma_f/D_h$); used by the rules |
+| `film_jump_frac` | among pairs of detected samples (below the liquid state) 10 ms apart, the fraction whose thickness changes by more than 0.0375 $D_h$ (0.3 mm) (needs ≥ 30 pairs). The fixed time lag keeps 100 Hz and kHz runs comparable. High values mean the probe sees either the film or a bubble passing at a random height; low values mean smooth waves. |
 | `ratio_homog` | measured $(dp/dz)$ / homogeneous prediction (section 3.3) |
 | `phi2_l` | measured $(dp/dz)$ / liquid-alone prediction: the two-phase multiplier $\phi_l^2$ (section 3.3) |
 
 ### 3.3 Mean pressure-drop features (`src/pressure_features.py`)
 
-Only the **mean** pressure gradient of each run is available: $(dp/dz)_\mathrm{tp} = \Delta p / L$, with $L$ = 0.75 m. Properties come from CoolProp at the test-section pressure and at the **water temperature**, used as an approximation of the unmeasured test-section temperature: water carries over 83 % of the heat capacity rate in every run (median 99.8 %), so an adiabatic mixture stays within 0.6 °C of it. The former choice, the mean of the water and air temperatures, was 2.4 °C lower on average; with it, or with the gas at the air temperature, no run changes class and the features change by 1 % to 2 % (median). $d$ = 8 mm.
+Only the **mean** pressure gradient of each run is available: $(dp/dz)_\mathrm{tp} = \Delta p / L$, with $L$ = 0.75 m. Properties come from CoolProp at the test-section pressure and at the **water temperature**, used as an approximation of the unmeasured test-section temperature: water carries over 83 % of the heat capacity rate in every run (median 99.8 %), so an adiabatic mixture stays within 0.6 °C of it. The former choice, the mean of the water and air temperatures, was 2.4 °C lower on average; with it, or with the gas at the air temperature, no run changes class and the features change by 1 % to 2 % (median). $D_h$ = 8 mm.
 
 **Gas mass flux.** `Qg` (LabVIEW) is the volumetric flow at the orifice meter, so $j_g = Q_g/A$ refers to the meter and the gas mass flux uses the density at the meter: $G_g = P_g/(R_{air} T_g)\,j_g$ (`two_phase_state` in `src/pressure_features.py`; up to version 8 the density at the test section was used, which underestimated $G_g$ by 15 % on average).
 
@@ -119,11 +121,11 @@ $$f = 8\left[(8/Re^*)^{12} + (a+b)^{-3/2}\right]^{1/12}, \quad a = \left[2.457\l
 
 **Homogeneous (McAdams), no slip.** With $G = G_l + G_g$ and $x = G_g/G$:
 
-$$\rho_h = \left[\frac{x}{\rho_g} + \frac{1-x}{\rho_l}\right]^{-1}, \qquad \mu_h = \left[\frac{x}{\mu_g} + \frac{1-x}{\mu_l}\right]^{-1}, \qquad Re = \frac{G d}{\mu_h}, \qquad \left(\frac{dp}{dz}\right)_h = \frac{f\,G^2}{2\,d\,\rho_h}$$
+$$\rho_h = \left[\frac{x}{\rho_g} + \frac{1-x}{\rho_l}\right]^{-1}, \qquad \mu_h = \left[\frac{x}{\mu_g} + \frac{1-x}{\mu_l}\right]^{-1}, \qquad Re = \frac{G D_h}{\mu_h}, \qquad \left(\frac{dp}{dz}\right)_h = \frac{f\,G^2}{2\,D_h\,\rho_h}$$
 
 **Liquid alone:**
 
-$$\left(\frac{dp}{dz}\right)_l = \frac{f(Re_l)\,G_l^2}{2\,d\,\rho_l}, \qquad Re_l = \frac{G_l\, d}{\mu_l}$$
+$$\left(\frac{dp}{dz}\right)_l = \frac{f(Re_l)\,G_l^2}{2\,D_h\,\rho_l}, \qquad Re_l = \frac{G_l\, D_h}{\mu_l}$$
 
 **The two features:**
 - $\mathrm{ratio\_homog} = (dp/dz)_\mathrm{tp} / (dp/dz)_h$ ($R_h$, homogeneous-normalized pressure-gradient ratio)
@@ -153,8 +155,8 @@ A run is intermittent when liquid bridges occur at least **0.1 times per second*
 
 | Pattern | Condition | Physical reading |
 |---|---|---|
-| **Annular** | `film_est_mean_mm` < 0.1 **and** `film_est_std_mm` < 0.2 mm | thin and uniform bottom film, permanently below the detection limit (runs without any film information also fall here) |
-| **Dispersed** | agitated or liquid-rich (definitions below) **and** (`n_peaks` ≥ 2 **or** $\phi_l^2$ ≤ 5) | liquid-dominated friction; film plus bubble layer |
+| **Annular** | $\bar\delta_f/D_h$ < 0.0125 (0.1 mm) **and** $\sigma_f/D_h$ < 0.025 (0.2 mm) | thin and uniform bottom film, permanently below the detection limit (runs without any film information also fall here) |
+| **Dispersed** | agitated or liquid-rich (definitions below) **and** (`n_peaks` ≥ 2 **or** $\phi_l^2$ ≤ 5.5) | liquid-dominated friction; film plus bubble layer |
 | **Churn** | agitated or liquid-rich **and** not dispersed | mixed flow in which the gas adds much of the friction |
 | **Wavy** | otherwise | film with smooth waves (includes the visual stratified runs) |
 
@@ -162,14 +164,14 @@ A run is intermittent when liquid bridges occur at least **0.1 times per second*
 
 1. **Film signature**, one of:
    - `n_peaks` ≥ 2 (film plus bubble layer), or
-   - a liquid film present with abruptly varying thickness: `film_est_mean_mm` ≥ 0.4 mm, `film_jump_frac` ≥ 0.4, and the second thickness detected in ≥ 15 % of the samples (1 − `f_undetected` ≥ 0.15).
+   - a liquid film present with abruptly varying thickness: $\bar\delta_f/D_h$ ≥ 0.05 (0.4 mm), `film_jump_frac` ≥ 0.4, and the second thickness detected in ≥ 15 % of the samples (1 − `f_undetected` ≥ 0.15).
 2. **Pressure:** `ratio_homog` ≥ 1.0 (pressure gradient at least the homogeneous prediction).
 
 Below the homogeneous prediction, a thick, jumpy film is a separated flow with the gas slipping over it (low $j_l$ runs), and the run is wavy.
 
 **Liquid-rich film** (high-velocity runs at the churn-annular transition). The run is neither annular nor agitated, and all of the following hold:
 
-- `film_est_mean_mm` < 0.5 mm: the probe sees only a thin, broken film, because the interface is lost to aeration;
+- $\bar\delta_f/D_h$ < 0.0625 (0.5 mm): the probe sees only a thin, broken film, because the interface is lost to aeration;
 - `ratio_homog` ≥ 1.0: the flow is mixed;
 - $\phi_l^2$ ≤ 20: below every thin-film wavy run with `ratio_homog` ≥ 1 (≥ 24.8) and every annular run; the churn and dispersed thin-film runs reach 15.1.
 
@@ -181,29 +183,37 @@ Below the homogeneous prediction, a thick, jumpy film is a separated flow with t
 | `bubble_share_min` | 0.5 | bubbly |
 | `plug_min_duration` | 0.02 s | plug |
 | `plug_min_f_liquid` | 0.10 | plug |
-| `annular_max_mean` | 0.1 mm | annular |
-| `annular_max_std` | 0.2 mm | annular |
+| `annular_max_mean_rel` | 0.0125 (0.1 mm) | annular |
+| `annular_max_std_rel` | 0.025 (0.2 mm) | annular |
 | `dispersed_min_peaks` | 2 | agitated film / dispersed |
-| `dispersed_min_mean` | 0.4 mm | agitated film |
+| `dispersed_min_mean_rel` | 0.05 (0.4 mm) | agitated film |
 | `dispersed_min_jump` | 0.4 | agitated film |
 | `dispersed_min_detected` | 0.15 | agitated film |
 | `agitated_min_homog_ratio` | 1.0 | agitated and liquid-rich films |
 | `dispersed_max_phi2` | 5.5 | dispersed vs churn |
 | `liquid_rich_max_phi2` | 20 | liquid-rich film |
-| `liquid_rich_max_film` | 0.5 mm | liquid-rich film |
+| `liquid_rich_max_film_rel` | 0.0625 (0.5 mm) | liquid-rich film |
 
-Feature parameters:
+Feature parameters (`FEATURE_PARAMS`):
 
-| Parameter | Value |
-|---|---|
-| Liquid / film state heights | 7.5 mm / 2.0 mm |
-| Minimum liquid-bridge duration | 5 ms |
-| KDE peak prominence | 5 % of the maximum |
-| Jump lag / jump size | 10 ms / 0.3 mm |
+| Parameter | Key | Value |
+|---|---|---|
+| Liquid / film state heights | `h_liq_rel`, `h_film_rel` | 0.9375 / 0.25 $D_h$ (7.5 / 2.0 mm) |
+| Minimum liquid-bridge duration | `min_dwell` | 5 ms |
+| KDE peak prominence | `kde_prominence` | 5 % of the maximum |
+| Jump lag / jump size | `jump_lag`, `jump_min_change_rel` | 10 ms / 0.0375 $D_h$ (0.3 mm) |
+
+### 4.4 Dimensional and dimensionless quantities
+
+- **Lengths of the criterion** are relative to the nominal hydraulic diameter $D_h$ = 8.0 mm (`CHANNEL_SIDE`; keys and columns ending in `_rel`). Because 8 is a power of two, value_rel = value_mm / 8 is exact in floating point: version 11 reproduces every feature and class of version 10 bit for bit. The mixer-wave removal uses the same convention (`MIXER_WAVE_PARAMS`: `h_tall_rel`, `h_film_rel`, `context_max_film_rel`).
+- **Lengths of the sensor treatment stay in mm**, because they are properties of the wall and the instrument, not of the flow: wall reference 0.985 mm, fill limit 0.373 mm, cap 8.02 mm (measured inner side, `CHANNEL_HEIGHT`), loading limits (section 1.1).
+- **Time thresholds stay dimensional** (0.1 Hz, 20 ms, 5 ms, 10 ms; mixer waves 20 ms, 5 ms, 0.2 s). The minimum bridge duration and the jump lag are tied to the sample interval; the family and plug limits to the record length.
+- **Old mm keys are rejected:** `merge_params` raises a `KeyError` naming the new key, so an override with a former key (e.g. `h_liq`, `annular_max_mean`) is never silently ignored. The historical scripts `verify_v3.py`, `verify_final_v6.py` and `refit_thresholds_rh1.py` use the former keys and run at commit `22932c7`.
+- **Convective scaling (evaluated, not adopted).** With $U = j_m$ (also $j_l$ and a drift-flux $U_t$), the Strouhal form $St = f_{bridge} D_h/U$ separates the families as well as $f_{bridge}$ (BA 88.1 %), while $L^* = \bar t_{bridge} U/D_h$ degrades the plug/slug split (BA 86.3 %, leave-one-out 84.6 %). $L^*$ is not a liquid-slug length: bridges are the unaerated stretches of a slug. Processing times scaled convectively would fall below one sample in 76 (minimum bridge) and 53 (jump lag) of the 98 runs at 100 Hz. Details: `objective_criteria_11/convective_scaling/findings.md`.
 
 ---
 
-## 5. Agreement with the visual classification (version 10)
+## 5. Agreement with the visual classification (versions 10 and 11)
 
 157 runs, seven classes. Agreement is the fraction of runs whose objective pattern equals the visual (reference) one. Balanced accuracy is the mean recall per class, so the large classes don't dominate it.
 

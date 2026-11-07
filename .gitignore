@@ -1,12 +1,18 @@
-# Root-level files except .gitignore and README.md
+# Root-level files except the ones listed below
 /*
 !/*/
 !/.gitignore
 !/README.md
+!/FLOW_PATTERN_CRITERIA.md
+!/PROJECT_HISTORY.md
+# OPEN_ITEMS.md stays local (manuscript wording and unpublished details)
 
 # Paper manuscript
 artigo/
 artigo_fluids/
+
+# Archived revision records (reviewer briefs, manuscript mirror); local only
+docs/archive/
 
 # Local data and notebooks
 data/bronze_layer/
