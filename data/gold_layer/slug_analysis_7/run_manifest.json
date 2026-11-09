@@ -1,0 +1,36 @@
+{
+  "version": "slug_analysis_7",
+  "date": "2026-11-09T01:19:20",
+  "description": "Slug units from the confocal signal (plug and slug runs) and preliminary camera interface velocity",
+  "criteria_version": "objective_criteria_11",
+  "slug_params": {
+    "h_tall_rel": 0.25,
+    "min_bubble_len_rel": 2.0,
+    "min_gap_samples": 2,
+    "min_slug": 0.005
+  },
+  "slug_param_grid": {
+    "min_bubble_len_rel": [
+      1.0,
+      2.0,
+      4.0
+    ],
+    "min_slug": [
+      0.0025,
+      0.005,
+      0.01
+    ]
+  },
+  "camera_spread_max": 0.1,
+  "film_series": [
+    34,
+    33,
+    32,
+    31,
+    30,
+    28
+  ],
+  "window_s": 5.0,
+  "window_min_record": 20.0,
+  "n_runs": 58
+}

@@ -164,6 +164,20 @@ def main():
     res["jg_jm"] = res.jg / res.jm
     res["jg_jl"] = res.jg / res.jl
 
+    # experimental conditions of the plug and slug runs (no transition lines)
+    fig, ax = plt.subplots(figsize=one, layout="constrained")
+    scatter(ax, res, "jg", "jl")
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_xticks([0.2, 0.5, 1, 2, 5], labels=["0.2", "0.5", "1", "2", "5"])
+    ax.set_yticks([0.1, 0.2, 0.5, 1], labels=["0.1", "0.2", "0.5", "1"])
+    ax.set_xlim(0.15, 10)
+    ax.set_ylim(0.08, 2.5)
+    ax.set_xlabel("$j_g$ [m/s]")
+    ax.set_ylabel("$j_l$ [m/s]")
+    ax.legend(frameon=False, loc="upper left")
+    save(fig, out, "fig_test_conditions")
+
     # slug frequency vs j_l and vs j_g, with the sensitivity band
     for x, lab in [("jl", "$j_l$ [m/s]"), ("jg", "$j_g$ [m/s]")]:
         fig, ax = plt.subplots(figsize=one, layout="constrained")
