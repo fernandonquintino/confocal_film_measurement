@@ -42,6 +42,8 @@ MARKERS = {"plug": "o", "slug": "^"}
 FILM_SERIES = [34, 33, 32, 31, 30, 28]               # plug, j_g ~ 0.52 m/s, j_l 0.12 -> 0.79 m/s (kHz runs)
 QC_RUNS = [33, 28, 56, 67, 25, 112]
 CAMERA_SPREAD_MAX = 0.10                             # max relative spread of the three probe-pair velocities
+WINDOW_S = 5.0                                       # window for the steadiness of the slug frequency [s]
+WINDOW_MIN_RECORD = 20.0                             # records shorter than this give no window statistics [s]
 
 plt.rcParams.update(PAPER_RC)
 plt.rcParams.update({"axes.spines.top": False, "axes.spines.right": False,
@@ -63,6 +65,19 @@ def scatter(ax, df, x, y, flag=None, **kw):
         if bad.any():
             ax.scatter(g.loc[bad, x], g.loc[bad, y], s=22, marker=MARKERS[pat], facecolor="none",
                        edgecolor=COLORS[pat], linewidth=0.8, label=f"{pat} (uncertain)", zorder=3, **kw)
+
+
+def window_frequency(units, duration):
+    """Steadiness of the slug frequency over the record: slugs starting in consecutive WINDOW_S windows.
+
+    Returns the minimum, maximum and coefficient of variation of the window frequencies (NaN for records
+    shorter than WINDOW_MIN_RECORD). Counts the slugs of the complete units (the last slug is not included).
+    """
+    if duration < WINDOW_MIN_RECORD or units.empty:
+        return dict.fromkeys(["f_win_min", "f_win_max", "f_win_cv"], np.nan)
+    starts = np.arange(0.0, duration - WINDOW_S + 1e-9, WINDOW_S)
+    f = np.array([((units.s_start >= a) & (units.s_start < a + WINDOW_S)).sum() / WINDOW_S for a in starts])
+    return {"f_win_min": f.min(), "f_win_max": f.max(), "f_win_cv": f.std() / f.mean() if f.mean() > 0 else np.nan}
 
 
 # ---------------------------------------------------------------- camera (preliminary)
@@ -122,7 +137,7 @@ def main():
             sens.append({"run_id": r.run_id, **g, "f_slug": f_grid[-1]})
         rows.append({"run_id": r.run_id, "date_identifier": r.date_identifier, "pattern": r.pattern,
                      "jl": r.jl, "jg": r.jg, "sampling_hz": r.sampling_hz, "f_undetected": r.f_undetected,
-                     "f_bridge": r.bridge_freq_hz, **st,
+                     "f_bridge": r.bridge_freq_hz, **st, **window_frequency(units, info["duration"]),
                      "dt": info["dt"], "t_bubble_min": info["t_bubble_min"],
                      "f_slug_p10": np.percentile(f_grid, 10), "f_slug_p90": np.percentile(f_grid, 90)})
         units_all.append(units.assign(run_id=r.run_id))
@@ -280,7 +295,8 @@ def main():
     write_manifest(out, "Slug units from the confocal signal (plug and slug runs) and preliminary camera "
                         "interface velocity", criteria_version=CRITERIA_VERSION, slug_params=SLUG_PARAMS,
                    slug_param_grid=SLUG_PARAM_GRID, camera_spread_max=CAMERA_SPREAD_MAX,
-                   film_series=FILM_SERIES, n_runs=len(res))
+                   film_series=FILM_SERIES, window_s=WINDOW_S, window_min_record=WINDOW_MIN_RECORD,
+                   n_runs=len(res))
     print(res.groupby("pattern")[["f_slug", "f_bridge", "intermittency", "ratio_bs", "Ls_Dh", "Lb_Dh"]].median().round(3))
     print("camera velocity ok:", int(res.U_cam_ok.sum()), "of", int(res.U_cam.notna().sum()))
 
