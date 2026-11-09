@@ -25,7 +25,7 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from src.flow_pattern_criteria import CHANNEL_SIDE, load_run          # noqa: E402
-from src.flow_pattern_report import (FIG_SIZE, FIG_SIZE_WIDE, T_CONFOCAL_LABEL,   # noqa: E402
+from src.flow_pattern_report import (COL_W, PAPER_RC, SCATTER_H, T_CONFOCAL_LABEL,   # noqa: E402
                                      run_file_tag, run_label)
 from src.output_versions import next_version_dir, write_manifest     # noqa: E402
 from src.slug_units import (SLUG_PARAMS, SLUG_PARAM_GRID, detect_slug_units,   # noqa: E402
@@ -43,8 +43,9 @@ FILM_SERIES = [34, 33, 32, 31, 30, 28]               # plug, j_g ~ 0.52 m/s, j_l
 QC_RUNS = [33, 28, 56, 67, 25, 112]
 CAMERA_SPREAD_MAX = 0.10                             # max relative spread of the three probe-pair velocities
 
-plt.rcParams.update({"font.size": 8, "axes.spines.top": False, "axes.spines.right": False,
-                     "axes.grid": True, "grid.color": "0.9", "grid.linewidth": 0.6})
+plt.rcParams.update(PAPER_RC)
+plt.rcParams.update({"axes.spines.top": False, "axes.spines.right": False,
+                     "axes.grid": True, "grid.color": "0.9"})
 
 
 def save(fig, folder, name):
@@ -144,7 +145,7 @@ def main():
     pd.DataFrame(sens).to_csv(out / "slug_sensitivity.csv", index=False)
 
     # ---------------------------------------------------------------- figures (PDF only, one panel each)
-    one = FIG_SIZE
+    one = (COL_W, SCATTER_H)
     res["jg_jm"] = res.jg / res.jm
     res["jg_jl"] = res.jg / res.jl
 
@@ -156,7 +157,7 @@ def main():
                         ecolor=COLORS[pat], elinewidth=0.8, alpha=0.6, zorder=2)
         scatter(ax, res, x, "f_slug", flag="f_uncertain")
         ax.set_xlabel(lab)
-        ax.set_ylabel("slug frequency $f_s$ [Hz]")
+        ax.set_ylabel("Slug frequency $f_s$ [Hz]")
         ax.legend(frameon=False)
         save(fig, out, f"fig_slug_frequency_vs_{x}")
 
@@ -166,8 +167,8 @@ def main():
     lim = [0, max(res.f_slug.max(), res.f_bridge.max()) * 1.05]
     ax.plot(lim, lim, color="0.4", lw=0.8, ls="--", zorder=1)
     ax.text(lim[1] * 0.62, lim[1] * 0.55, "1:1", color="0.4")
-    ax.set_xlabel("liquid-bridge frequency $f_{bridge}$ [Hz]")
-    ax.set_ylabel("slug frequency $f_s$ [Hz]")
+    ax.set_xlabel("Liquid bridge frequency $f_{bridge}$ [Hz]")
+    ax.set_ylabel("Slug frequency $f_s$ [Hz]")
     ax.legend(frameon=False)
     save(fig, out, "fig_slug_vs_bridge_frequency")
 
@@ -177,14 +178,14 @@ def main():
     ax.plot([0, 1], [0, 1], color="0.4", lw=0.8, ls="--", zorder=1)
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
-    ax.set_xlabel("$j_g / j_m$ [-]")
-    ax.set_ylabel(r"intermittency $\sum t_b / \sum(t_s + t_b)$ [-]")
+    ax.set_xlabel("$j_g/j_m$ [-]")
+    ax.set_ylabel(r"Intermittency $\gamma$ [-]")
     ax.legend(frameon=False, loc="upper left")
     save(fig, out, "fig_intermittency")
 
     # lengths with U = j_m and the measured ratio
-    for y, flag, lab, name in [("Ls_Dh", "ts_resolution", "$L_S / D_h$ (U = $j_m$) [-]", "fig_slug_length"),
-                               ("Lb_Dh", "f_uncertain", "$L_B / D_h$ (U = $j_m$) [-]", "fig_bubble_length")]:
+    for y, flag, lab, name in [("Ls_Dh", "ts_resolution", "$L_S/D_h$ ($U = j_m$) [-]", "fig_slug_length"),
+                               ("Lb_Dh", "f_uncertain", "$L_B/D_h$ ($U = j_m$) [-]", "fig_bubble_length")]:
         fig, ax = plt.subplots(figsize=one, layout="constrained")
         scatter(ax, res, "jm", y, flag=flag)
         ax.set_xlabel("$j_m$ [m/s]")
@@ -196,8 +197,8 @@ def main():
     scatter(ax, res, "jg_jl", "ratio_bs", flag="ratio_uncertain")
     ax.set_xscale("log")
     ax.set_yscale("log")
-    ax.set_xlabel("$j_g / j_l$ [-]")
-    ax.set_ylabel("median $t_b / t_s$ = $L_B / L_S$ [-]")
+    ax.set_xlabel("$j_g/j_l$ [-]")
+    ax.set_ylabel("Median $t_b/t_s$ [-]")
     ax.legend(frameon=False)
     save(fig, out, "fig_length_ratio")
 
@@ -211,8 +212,8 @@ def main():
         rr = res.set_index("run_id").loc[rid]
         ax.plot(x, film / CHANNEL_SIDE, color=c, lw=1.6, label=f"$j_l$ = {rr.jl:.2f} m/s")
         film_rows += [{"run_id": rid, "x": xi, "film_mm": fi, "n_bubbles": ni} for xi, fi, ni in zip(x, film, nb)]
-    ax.set_xlabel("position in the bubble $(t - t_{slug,end}) / t_b$ [-]")
-    ax.set_ylabel(r"bottom film $\delta_f / D_h$ [-]")
+    ax.set_xlabel("Position in the bubble $x_b$ [-]")
+    ax.set_ylabel(r"Bottom film $\delta_f/D_h$ [-]")
     ax.legend(frameon=False, title="plug, $j_g$ = 0.52 m/s", fontsize=7)
     save(fig, out, "fig_film_below_bubbles_profiles")
     fr = pd.DataFrame(film_rows)
@@ -222,10 +223,10 @@ def main():
         "front": g.film_mm[g.x < 0.15].median(), "end": g.film_mm[g.x > 0.85].median()})).reset_index()
     agg = agg.merge(res[["run_id", "jl"]], on="run_id")
     fig, ax = plt.subplots(figsize=one, layout="constrained")
-    ax.plot(agg.jl, agg.front / CHANNEL_SIDE, "o-", color=COLORS["plug"], label="front of the bubble ($x$ < 0.15)")
-    ax.plot(agg.jl, agg.end / CHANNEL_SIDE, "s--", color="#1c5cab", label="end of the bubble ($x$ > 0.85)")
+    ax.plot(agg.jl, agg.front / CHANNEL_SIDE, "o-", color=COLORS["plug"], label="Front of the bubble ($x_b < 0.15$)")
+    ax.plot(agg.jl, agg.end / CHANNEL_SIDE, "s--", color="#1c5cab", label="End of the bubble ($x_b > 0.85$)")
     ax.set_xlabel("$j_l$ [m/s]")
-    ax.set_ylabel(r"$\delta_f / D_h$ [-]")
+    ax.set_ylabel(r"Bottom film $\delta_f/D_h$ [-]")
     ax.legend(frameon=False, fontsize=7, title="plug, $j_g$ = 0.52 m/s")
     save(fig, out, "fig_film_below_bubbles_front_end")
 
@@ -235,14 +236,14 @@ def main():
     scatter(ax, ok, "jm", "U_cam")
     bad = res[~res.U_cam_ok & res.U_cam.notna()]
     ax.scatter(bad.jm, bad.U_cam.clip(upper=8), s=12, facecolor="none", edgecolor="0.6", lw=0.6,
-               label="probe pairs disagree", zorder=2)
+               label="Probe pairs disagree", zorder=2)
     lim = [0, max(4, ok.jm.max() * 1.1)]
     ax.plot(lim, lim, color="0.4", lw=0.8, ls="--", zorder=1)
     ax.text(lim[1] * 0.75, lim[1] * 0.68, "$U = j_m$", color="0.4")
     ax.set_xlim(lim)
     ax.set_ylim(0, 8)
     ax.set_xlabel("$j_m$ [m/s]")
-    ax.set_ylabel("camera interface velocity $U$ [m/s]")
+    ax.set_ylabel("Camera interface velocity $U$ [m/s]")
     ax.legend(frameon=False, fontsize=7)
     save(fig, out, "fig_camera_velocity")
 
@@ -256,25 +257,24 @@ def main():
         t1 = t0 + (1.0 if rr.sampling_hz > 200 else 10.0)
         w = (df.time >= t0) & (df.time < t1)
         mw = df.mixer_wave.astype(bool)
-        fig, ax = plt.subplots(figsize=(FIG_SIZE_WIDE[0], 2.0), layout="constrained")
+        fig, ax = plt.subplots(figsize=(COL_W, SCATTER_H), layout="constrained")
         ax.plot(df.time[w & ~mw], df.t2[w & ~mw], ".", ms=1.5, color="0.15", label=r"$\delta_2$")
         ax.plot(df.time[w & mw], np.full((w & mw).sum(), 8.3), "|", ms=4, color=COLORS["slug"],
-                label="flagged as mixer wave")
+                label="Removed as mixer wave")
         units = pd.concat(units_all).query("run_id == @rid")
         shown = False
         for u in units.itertuples():
             if u.s_end > t0 and u.s_start < t1:
                 ax.axvspan(u.s_start, u.s_end, color=COLORS["plug"], alpha=0.18, lw=0,
-                           label=None if shown else "detected liquid slug")
+                           label=None if shown else "Detected liquid slug")
                 shown = True
         ax.set_xlim(t0, t1)
         ax.set_ylim(-0.2, 9.4)
         ax.set_ylabel(r"$\delta_2$ [mm]")
         ax.set_xlabel(T_CONFOCAL_LABEL)
-        ax.set_title(f"{run_label(rr.pattern, rr.jl, rr.jg)}, {rr.sampling_hz / 1000:.1f} kHz: "
-                     f"$f_s$ = {rr.f_slug:.2f} Hz ({rr.f_slug_p10:.2f}-{rr.f_slug_p90:.2f}), "
-                     f"$f_{{bridge}}$ = {rr.f_bridge:.2f} Hz", fontsize=7, loc="left")
-        ax.legend(frameon=False, fontsize=6, loc="center left", bbox_to_anchor=(1.0, 0.5))
+        ax.set_title(f"{run_label(rr.pattern, rr.jl, rr.jg)}, {rr.sampling_hz / 1000:.1f} kHz", fontsize=7, loc="left")
+        ax.legend(frameon=False, fontsize=6, loc="upper center", bbox_to_anchor=(0.5, -0.3), ncols=3,
+                  handlelength=1.2, columnspacing=1.0)
         save(fig, qc, f"fig_detection_qc_{run_file_tag(rr.pattern, rr.jl, rr.jg)}")
 
     write_manifest(out, "Slug units from the confocal signal (plug and slug runs) and preliminary camera "

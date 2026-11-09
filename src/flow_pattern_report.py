@@ -13,12 +13,30 @@ CM = 1 / 2.54
 FIG_SIZE = (8.4 * CM, 6.8 * CM)        # single column
 FIG_SIZE_WIDE = (17.6 * CM, 8.4 * CM)  # double column
 
+# Paper layout and fonts (same values as PAPER_RC in notebooks/paper_figures.ipynb): elsarticle 5p column,
+# LaTeX text with txfonts (Times), 8 pt labels, 7 pt ticks and legends
+PT = 1 / 72.27                         # TeX point [in]
+COL_W = 252.0 * PT                     # \columnwidth [in]
+SCATTER_H = 2.2                        # height of the scatter figures [in]
+PAPER_RC = {
+    'text.usetex': True,
+    'text.latex.preamble': r'\usepackage{txfonts}',
+    'font.family': 'serif',
+    'font.serif': ['Computer Modern Roman'],
+    'font.size': 8, 'axes.labelsize': 8, 'axes.titlesize': 8,
+    'xtick.labelsize': 7, 'ytick.labelsize': 7, 'legend.fontsize': 7, 'legend.title_fontsize': 7,
+    'axes.linewidth': 0.6, 'xtick.major.width': 0.6, 'ytick.major.width': 0.6,
+    'xtick.minor.width': 0.5, 'ytick.minor.width': 0.5, 'xtick.major.size': 3, 'ytick.major.size': 3,
+    'xtick.minor.size': 1.5, 'ytick.minor.size': 1.5, 'lines.linewidth': 0.8, 'grid.linewidth': 0.4,
+    'ytick.color': 'black', 'xtick.color': 'black', 'axes.labelcolor': 'black', 'axes.edgecolor': 'black',
+}
+
 VISUAL_PATTERNS = ['bubbly', 'plug', 'slug', 'dispersed', 'churn', 'wavy', 'stratified', 'annular']
 
 # Figure time labels. The camera and the confocal sensor were not synchronized: each time axis starts at
 # its own record (camera: first recorded frame; confocal: first sample), so the two zeros differ.
-T_CONFOCAL_LABEL = r'$t$ [s] (confocal record)'
-T_CAMERA_LABEL = r'$t_{cam}$ [ms] (camera record)'
+T_CONFOCAL_LABEL = r'Time $t$ [s] (confocal record)'
+T_CAMERA_LABEL = r'Camera time $t_{cam}$ [ms]'
 TIME_ORIGIN_NOTE = 'Camera and confocal times start at their own records (not synchronized).'
 
 

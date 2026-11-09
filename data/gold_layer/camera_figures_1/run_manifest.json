@@ -1,0 +1,31 @@
+{
+  "version": "camera_figures_1",
+  "date": "2026-11-08T23:36:30",
+  "description": "Camera frames and space-time images of selected plug and slug runs (camera time, not synchronized with the confocal record)",
+  "runs": {
+    "plug_jl0p24_jg0p52": {
+      "run_id": 33,
+      "date_identifier": "0305_06",
+      "fps": 5000.0,
+      "frame_times_ms": [
+        64.0,
+        238.0
+      ],
+      "top_row": 55,
+      "bottom_row": 411,
+      "px_per_mm": 44.5
+    },
+    "slug_jl0p97_jg1p30": {
+      "run_id": 67,
+      "date_identifier": "0314_06",
+      "fps": 8000.0,
+      "frame_times_ms": [
+        104.0,
+        138.0
+      ],
+      "top_row": 46,
+      "bottom_row": 384,
+      "px_per_mm": 42.25
+    }
+  }
+}
